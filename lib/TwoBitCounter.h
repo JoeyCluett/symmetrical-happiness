@@ -13,7 +13,8 @@ enum class TBC : int {
 
 enum class Branch : int {
     Taken = 1,
-    NotTaken = 0
+    NotTaken = 0,
+    Unknown = -1
 };
 
 std::ostream& operator<<(std::ostream& os, TBC tbc) {
@@ -21,13 +22,13 @@ std::ostream& operator<<(std::ostream& os, TBC tbc) {
         case TBC::StronglyNotTaken:
             os << "STRONGLY_NOT_TAKEN"; break;
         case TBC::WeaklyNotTaken:
-            os << "WEAKLY_NOT_TAKEN"; break;
+            os << "WEAKLY_NOT_TAKEN  "; break;
         case TBC::WeaklyTaken:
-            os << "WEAKLY_TAKEN"; break;
+            os << "WEAKLY_TAKEN      "; break;
         case TBC::StronglyTaken:
-            os << "STRONGLY_TAKEN"; break;
+            os << "STRONGLY_TAKEN    "; break;
         default:
-            os << "UNKNOWN_TBC_STATE"; break;
+            os << "UNKNOWN_TBC_STATE "; break;
     }
     return os;
 }
@@ -35,11 +36,11 @@ std::ostream& operator<<(std::ostream& os, TBC tbc) {
 std::ostream& operator<<(std::ostream& os, Branch br) {
     switch(br) {
         case Branch::Taken:
-            os << "BRANCH_TAKEN"; break;
+            os << "BRANCH_TAKEN    "; break;
         case Branch::NotTaken:
             os << "BRANCH_NOT_TAKEN"; break;
         default:
-            os << "BRANCH_UNKNOWN"; break;
+            os << "BRANCH_UNKNOWN  "; break;
     }
     return os;
 }
@@ -55,6 +56,21 @@ public:
 
     TBC getState(void) {
         return this->state;
+    }
+
+    Branch getPrediction() {
+        switch(this->state) {
+            case TBC::StronglyNotTaken:
+            case TBC::WeaklyNotTaken:
+                return Branch::NotTaken;
+
+            case TBC::StronglyTaken:
+            case TBC::WeaklyTaken:
+                return Branch::Taken;
+            
+            default:
+                return Branch::Unknown;
+        }
     }
 
     TBC update(Branch NT) {
@@ -88,6 +104,21 @@ public:
 
     TBC operator()(Branch NT) {
         return this->update(NT);
+    }
+
+    auto acr(void) -> const char* {
+        switch(this->state) {
+            case TBC::StronglyNotTaken:
+                return "SN";
+            case TBC::StronglyTaken:
+                return "ST";
+            case TBC::WeaklyNotTaken:
+                return "WN";
+            case TBC::WeaklyTaken:
+                return "WT";
+            default:
+                return "ERROR";
+        }
     }
 
 };

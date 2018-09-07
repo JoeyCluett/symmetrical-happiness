@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 #include <Bits.h>
 #include <TwoBitCounter.h>
@@ -16,23 +17,12 @@ auto T = Branch::Taken;
 
 int main(int argc, char* argv[]) {
 
-    vector<Branch> branch_pattern = {N, N, N, T};
+    // Problem 2
+    cout << "Problem 2:\n\n";
+    HistoryPredictor hp_2(0, 1, {SN, SN});
+    hp_2.runSimulation({T, T}, 10);
 
-    HistoryPredictor hp(0, 3, {SN, SN, SN, SN, SN, SN, SN, SN}); // 3-bit predictor
 
-    hp.runSimulation(branch_pattern, 20);
-
-    /*for(int i = 0; i < 24; i++) {
-        cout << hp;
-        auto pred   = hp.getPrediction();
-        auto actual = branch_pattern[i % 4];
-
-        cout << "    " << pred << "    " << actual << "    ";
-
-        hp.update(pred, actual);
-
-        cout << PRINT_BOOL(pred == actual) << endl;
-    }*/
 
     return 0;
 }

@@ -21,6 +21,8 @@ private:
     std::vector<int> jump_table;
     std::map<std::string, int> jump_offset_table;
 
+    auto cleanSource(std::string filename) -> std::string;
+
 public:
     MipsTokenizer(std::string filename);
 
@@ -31,11 +33,28 @@ public:
     int strToOpcode(std::string op_str);
     int strToRegOffset(std::string reg_str);
 
-    MipsInstruction& operator[](int index) {
+    auto operator[](int index) -> MipsInstruction& {
         return this->instruction_stream.at(index);
     }
 
 };
+
+std::string MipsTokenizer::cleanSource(std::string filename) {
+    std::vector<char> char_stream;
+    std::ifstream input_stream(filename);
+
+    auto tmp_filename = "/tmp/djkrhdniwiwnsnbdcjdfneismwikd.asm";
+
+    char buf[1024];
+
+    int r = 0;
+    do {
+        
+    } while(r > 0);
+
+    return tmp_filename;
+
+}
 
 MipsTokenizer::MipsTokenizer(std::string filename) {
     std::vector<std::string> string_stream;

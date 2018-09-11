@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include "MIPS_Constants.h"
 
+//#define __DEBUG__
+
 class MipsInstruction {
 public:
     int opcode;
@@ -103,8 +105,16 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
     for(int i = 0; i < string_stream.size();) {
         std::string current_str = string_stream[i];
 
+        #ifdef __DEBUG__
+        std::cout << "TOKEN: " << current_str << std::endl;
+        #endif
+
         switch(current_state) {
             case STATE_default:
+
+                #ifdef __DEBUG__
+                std::cout << "STATE_default\n";
+                #endif
 
                 if(current_str.back() == ':') {
                     current_state = STATE_label;
@@ -114,6 +124,10 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 break;
             
             case STATE_label:
+
+                #ifdef __DEBUG__
+                std::cout << "STATE_label\n";
+                #endif
 
                 {
                     auto it = this->jump_offset_table.find(current_str);
@@ -140,6 +154,10 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
             case STATE_instruction:
                 
+                #ifdef __DEBUG__
+                std::cout << "STATE_instruction\n";
+                #endif 
+
                 if(current_str == "add") {
                     mi.opcode = MIPS_inst::add;
                     current_state = STATE_std_math;
@@ -177,6 +195,10 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
             case STATE_std_math:
 
+                #ifdef __DEBUG__
+                std::cout << "STATE_std_math\n";
+                #endif 
+
                 // three registers
                 mi.argv[0] = strToRegOffset(string_stream[i+0]);
                 mi.argv[1] = strToRegOffset(string_stream[i+1]);
@@ -184,10 +206,15 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
                 current_state = STATE_default;
                 i += 3; // skip the three operands
+                this->instruction_stream.push_back(mi);
                 break;
 
             case STATE_lw: // these two have the same types of args in the same order
             case STATE_sw:
+
+                #ifdef __DEBUG__
+                std::cout << "STATE_lw/STATE_sw\n";
+                #endif
 
                 mi.argv[0] = strToRegOffset(string_stream[i+0]);
                 mi.argv[1] = std::stoi(string_stream[i+1]);
@@ -195,20 +222,27 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
                 current_state = STATE_default;
                 i += 3;
+                this->instruction_stream.push_back(mi);
                 break;
 
             case STATE_branch: // all branches share the same arg pattern
-                //std::cout << "BRANCH\n";
+                #ifdef __DEBUG__
+                std::cout << "STATE_branch\n";
+                #endif
 
                 mi.argv[0] = strToRegOffset(string_stream[i+0]);
                 mi.argv[1] = strToRegOffset(string_stream[i+1]);
+
+                current_str = string_stream[i+2];
 
                 {
                     auto it = this->jump_offset_table.find(current_str + ":");
                     if(it == this->jump_offset_table.end()) {
                         // jump doesnt exist, create one
-                        this->jump_offset_table[current_str] = this->jump_table.size();
+                        this->jump_offset_table[current_str + ":"] = this->jump_table.size();
                         this->jump_table.push_back(-1); // this will be evaluated/checked later
+                        
+                        mi.argv[2] = this->jump_table.size() - 1;
                     } else {
                         // jump already evaluated, place offset
                         mi.argv[2] = it->second;
@@ -217,9 +251,14 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
                 current_state = STATE_default;
                 i += 3;
+                this->instruction_stream.push_back(mi);
                 break;
 
             case STATE_imm_math:
+
+                #ifdef __DEBUG__
+                std::cout << "STATE_imm_math\n";
+                #endif
 
                 mi.argv[0] = strToRegOffset(string_stream[i+0]);
                 mi.argv[1] = strToRegOffset(string_stream[i+1]);
@@ -227,15 +266,22 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
 
                 current_state = STATE_default;
                 i += 3;
+                this->instruction_stream.push_back(mi);
                 break;
 
             default:
                 throw std::runtime_error(std::string("UNKNOWN TOKEN IN STREAM: ") + current_str);
         }
+
     }
 
-    // final step is to finalize jump targets. they 
+    // last step is to finalize jump targets. they 
     // currently exist only as offsets into the jump table
+    
+    #ifdef __DEBUG__
+    for(auto sp : jump_offset_table)
+        std::cout << sp.first << "   " << sp.second << std::endl;
+    #endif
 
     // first make sure every jump has a target
     for(auto i : jump_table) {
@@ -251,7 +297,6 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
             m.argv[2] = this->jump_table[m.argv[2]];
     }
 }
-
 
 int MipsTokenizer::strToRegOffset(std::string reg_str) {
     if(reg_str[0] != '$')
@@ -318,11 +363,11 @@ int MipsTokenizer::strToRegOffset(std::string reg_str) {
 
 int MipsTokenizer::strToOpcode(std::string op_str) {
     const std::map<std::string, int> op_table = {
-        {"add", MIPS_inst::add},
-        {"lw", MIPS_inst::lw},
-        {"slt", MIPS_inst::slt},
-        {"sw", MIPS_inst::sw},
-        {"bne", MIPS_inst::bne},
+        {"add",  MIPS_inst::add},
+        {"lw",   MIPS_inst::lw},
+        {"slt",  MIPS_inst::slt},
+        {"sw",   MIPS_inst::sw},
+        {"bne",  MIPS_inst::bne},
         {"addi", MIPS_inst::addi}
     };
 

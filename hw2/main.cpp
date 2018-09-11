@@ -21,8 +21,7 @@ auto T = Branch::Taken;
 int main(int argc, char* argv[]) {
 
     MipsTokenizer mt("../asm/hw2-pb6.asm");
-
-    
+    cout << "Number of instructions: " << mt.size() << endl;
 
     // Problem 1
 

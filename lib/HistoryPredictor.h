@@ -6,7 +6,7 @@
 #include "TwoBitCounter.h"
 #include "Bits.h"
 
-#define PRINT_BOOL(condi) (condi ? "CORRECT" : "INCORRECT")
+#define PRINT_BOOL(condi) (condi ? "CORRECT  " : "INCORRECT")
 
 class HistoryPredictor {
 private:
@@ -80,7 +80,7 @@ public:
         return os;
     }
 
-    auto runSimulation(std::vector<Branch> pattern, int iters) -> int {
+    auto runSimulation(std::vector<Branch> pattern, int iters, bool test_dyn = false) -> int {
 
         std::cout << "Pattern:\n    ";
         for(auto tbc : pattern) {
@@ -96,7 +96,7 @@ public:
         for(int i = 0; i < hp_print_len; i++)
             std::cout << '-';
 
-        for(int i = 0; i < 52; i++)
+        for(int i = 0; i < 60; i++)
             std::cout << "-";
         std::cout << std::endl;
 
@@ -108,12 +108,22 @@ public:
             auto pred   = getPrediction();
             auto actual = pattern[i % pattern.size()];
             std::cout << *this << "    ";
-            std::cout << pred << "    " << actual << "    " << PRINT_BOOL(pred == actual) << std::endl;
+            std::cout << pred << "    " << actual << "    " << PRINT_BOOL(pred == actual);
+            std::cout << "  <-  " << i+1;
 
             if(pred == actual)
                 correct_in_row++;
             else
                 correct_in_row = 0;
+
+            if(test_dyn) {
+                if(correct_in_row == pattern.size()) {
+                    std::cout << "    << DONE\n";
+                    return correct_in_row;
+                }
+            } 
+            
+            std::cout << std::endl;
 
             update(pred, actual);
             iterations_run++;

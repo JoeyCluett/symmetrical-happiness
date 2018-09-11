@@ -13,6 +13,7 @@ namespace MIPS_inst {
     const int bne  = 4;
     const int slt  = 5;
     const int b    = 6;
+    const int beq  = 7;
 
 };
 

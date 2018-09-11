@@ -4,7 +4,9 @@
 #include <Bits.h>
 #include <TwoBitCounter.h>
 #include <HistoryPredictor.h>
+
 #include <MIPS_Tokenizer.h>
+#include <MIPS_Constants.h>
 
 using namespace std;
 

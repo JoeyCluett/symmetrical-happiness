@@ -12,7 +12,7 @@
 class MipsInstruction {
 public:
     int opcode;
-    int argv[4];
+    int argv[3];
 };
 
 class MipsTokenizer {
@@ -21,7 +21,8 @@ private:
     std::vector<int> jump_table;
     std::map<std::string, int> jump_offset_table;
 
-    auto cleanSource(std::string filename) -> std::string;
+    auto cleanSource(std::string filename) -> std::string; // returns new filename
+    auto finalizeJumpTargets(void) -> void; // turns jump offsets into targets
 
 public:
     MipsTokenizer(std::string filename);
@@ -45,24 +46,44 @@ std::string MipsTokenizer::cleanSource(std::string filename) {
 
     auto tmp_filename = "/tmp/djkrhdniwiwnsnbdcjdfneismwikd.asm";
 
-    char buf[1024];
+    if(input_stream) {
+        // get length of file:
+        input_stream.seekg(0, input_stream.end);
+        int length = input_stream.tellg();
+        input_stream.seekg(0, input_stream.beg);
 
-    int r = 0;
-    do {
-        
-    } while(r > 0);
+        char * buffer = new char [length];
+        input_stream.read(buffer, length);
 
+        // get rid of , ( )
+        for(int i = 0; i < length; i++) {
+            char c = buffer[i];
+            if(c == ',' || c == '(' || c == ')')
+                buffer[i] = ' ';
+        }
+
+        std::ofstream output_stream(tmp_filename);
+        output_stream.write(buffer, length);
+        output_stream.close();
+
+        delete[] buffer;
+    }
+
+    input_stream.close();
     return tmp_filename;
-
 }
 
 MipsTokenizer::MipsTokenizer(std::string filename) {
     std::vector<std::string> string_stream;
-    std::ifstream input_stream(filename);
+
+    std::string new_filename = this->cleanSource(filename);
+    std::ifstream input_stream(new_filename);
     std::string str;
 
     while((input_stream >> str))
         string_stream.push_back(str);
+
+    MipsInstruction mi;
 
     // THANK YOU ALAN TURING!
 
@@ -74,15 +95,17 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
     const int STATE_lw       = 4;
     const int STATE_sw       = 5;
     const int STATE_branch   = 6;
+    const int STATE_imm_math = 7;
 
     int opcode_args = 0;
     int current_state = STATE_default;
 
     for(int i = 0; i < string_stream.size();) {
-        string current_str = string_stream[i];
+        std::string current_str = string_stream[i];
 
         switch(current_state) {
             case STATE_default:
+
                 if(current_str.back() == ':') {
                     current_state = STATE_label;
                 } else {
@@ -92,15 +115,140 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
             
             case STATE_label:
 
+                {
+                    auto it = this->jump_offset_table.find(current_str);
+                    if(it == this->jump_offset_table.end()) {
+
+                        // entry doesnt exist, create it
+                        //std::cout << "NEW JUMP ENTRY NEEDED\n    " << current_str << std::endl;
+                        this->jump_offset_table[current_str] = this->jump_table.size();
+                        this->jump_table.push_back(this->instruction_stream.size());
+
+                    } else {
+
+                        // jump offset already exists, populate it
+                        //std::cout << "ENTRY ALREADY EXISTS...POPULATING" << std::endl;
+                        int index = this->jump_offset_table[current_str];
+                        this->jump_table[index] = this->instruction_stream.size();
+
+                    }
+                }
+                
+                current_state = STATE_default;
                 i++; // advance op_Str
                 break;
 
             case STATE_instruction:
                 
+                if(current_str == "add") {
+                    mi.opcode = MIPS_inst::add;
+                    current_state = STATE_std_math;
+
+                } else if(current_str == "lw") {
+                    mi.opcode = MIPS_inst::lw;
+                    current_state = STATE_lw;
+
+                } else if(current_str == "slt") {
+                    mi.opcode = MIPS_inst::slt;
+                    current_state = STATE_std_math;
+
+                } else if(current_str == "beq") {
+                    mi.opcode = MIPS_inst::beq;
+                    current_state = STATE_branch;
+
+                } else if(current_str == "addi") {
+                    mi.opcode = MIPS_inst::addi;
+                    current_state = STATE_imm_math;
+
+                } else if(current_str == "sw") {
+                    mi.opcode = MIPS_inst::sw;
+                    current_state = STATE_sw;
+
+                } else if(current_str == "bne") {
+                    mi.opcode = MIPS_inst::bne;
+                    current_state = STATE_branch;
+
+                } else {
+                    throw std::runtime_error(std::string("UNKNOWN INSTRUCTION TOKEN: ") + current_str);
+                }
+
+                i++;
+                break;
+
+            case STATE_std_math:
+
+                // three registers
+                mi.argv[0] = strToRegOffset(string_stream[i+0]);
+                mi.argv[1] = strToRegOffset(string_stream[i+1]);
+                mi.argv[2] = strToRegOffset(string_stream[i+2]);
+
+                current_state = STATE_default;
+                i += 3; // skip the three operands
+                break;
+
+            case STATE_lw: // these two have the same types of args in the same order
+            case STATE_sw:
+
+                mi.argv[0] = strToRegOffset(string_stream[i+0]);
+                mi.argv[1] = std::stoi(string_stream[i+1]);
+                mi.argv[2] = strToRegOffset(string_stream[i+2]);
+
+                current_state = STATE_default;
+                i += 3;
+                break;
+
+            case STATE_branch: // all branches share the same arg pattern
+                //std::cout << "BRANCH\n";
+
+                mi.argv[0] = strToRegOffset(string_stream[i+0]);
+                mi.argv[1] = strToRegOffset(string_stream[i+1]);
+
+                {
+                    auto it = this->jump_offset_table.find(current_str + ":");
+                    if(it == this->jump_offset_table.end()) {
+                        // jump doesnt exist, create one
+                        this->jump_offset_table[current_str] = this->jump_table.size();
+                        this->jump_table.push_back(-1); // this will be evaluated/checked later
+                    } else {
+                        // jump already evaluated, place offset
+                        mi.argv[2] = it->second;
+                    }
+                }
+
+                current_state = STATE_default;
+                i += 3;
+                break;
+
+            case STATE_imm_math:
+
+                mi.argv[0] = strToRegOffset(string_stream[i+0]);
+                mi.argv[1] = strToRegOffset(string_stream[i+1]);
+                mi.argv[2] = std::stoi(string_stream[i+2]);
+
+                current_state = STATE_default;
+                i += 3;
+                break;
 
             default:
-
+                throw std::runtime_error(std::string("UNKNOWN TOKEN IN STREAM: ") + current_str);
         }
+    }
+
+    // final step is to finalize jump targets. they 
+    // currently exist only as offsets into the jump table
+
+    // first make sure every jump has a target
+    for(auto i : jump_table) {
+        if(i == -1) // error condition
+            throw std::runtime_error("MipsTokenizer : ENTRY IN JUMP TABLE NOT EVALUATED");
+    }
+
+    // every jump has successfully been evaluated
+    // time to place jump targets in the instruction stream
+    for(auto& m : this->instruction_stream) {
+        int op = m.opcode;
+        if(op == MIPS_inst::beq || op == MIPS_inst::bne)
+            m.argv[2] = this->jump_table[m.argv[2]];
     }
 }
 
@@ -109,7 +257,7 @@ int MipsTokenizer::strToRegOffset(std::string reg_str) {
     if(reg_str[0] != '$')
         throw std::runtime_error(std::string("UNKNOWN REGISTER STRING: ") + reg_str);
 
-    if(reg_str == "$zero")
+    if(reg_str == "$zero" || reg_str == "$0")
         return 0;
 
     if(reg_str == "$at")

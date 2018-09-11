@@ -37,7 +37,7 @@ public:
     int strToRegOffset(std::string reg_str);
 
     auto operator[](int index) -> MipsInstruction& {
-        return this->instruction_stream.at(index);
+        return this->instruction_stream.at(index); // safe access
     }
 
 };

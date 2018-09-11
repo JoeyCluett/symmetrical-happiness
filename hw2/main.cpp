@@ -46,13 +46,17 @@ int main(int argc, char* argv[]) {
     }
 
     // Problem 6
-    cout << "\nProblem 5:\n\n";
+    cout << "\nProblem 6:\n\n";
     {
         MipsTokenizer mt("../asm/hw2-pb6.asm");
-        cout << "Number of instructions: " << mt.size() << endl;
 
+        addr_t start_addr = 0;
+        std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
+
+        MipsRuntime mr(0x800007C0);
+        mr.poke(start_addr, mem_array);
+        mr.execute(mt, 5);
         
-
     }
 
     return 0;

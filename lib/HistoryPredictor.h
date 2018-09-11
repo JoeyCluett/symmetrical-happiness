@@ -4,11 +4,12 @@
 #include <vector>
 #include <initializer_list>
 #include "TwoBitCounter.h"
+#include "BranchPredictor.h"
 #include "Bits.h"
 
 #define PRINT_BOOL(condi) (condi ? "CORRECT  " : "INCORRECT")
 
-class HistoryPredictor {
+class HistoryPredictor : public BranchPredictor {
 private:
     int start_state = 0;
     int number_of_states = 0;
@@ -54,7 +55,7 @@ public:
         return tbc_vec[start_state].getPrediction();
     }
 
-    bool update(Branch pred_br, Branch actual_br) {
+    auto update(Branch pred_br, Branch actual_br) -> bool {
         
         if(pred_br != actual_br)
             tbc_vec[start_state](actual_br);

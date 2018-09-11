@@ -2,6 +2,7 @@
 #define __JJC__TWO__BIT__COUNTER__H__
 
 #include <iostream>
+#include "BranchPredictor.h"
 
 enum class TBC : int {
     StronglyNotTaken = 0,
@@ -9,12 +10,6 @@ enum class TBC : int {
     WeaklyTaken      = 2,
     StronglyTaken    = 3,
     Unknown          = -1
-};
-
-enum class Branch : int {
-    Taken = 1,
-    NotTaken = 0,
-    Unknown = -1
 };
 
 std::ostream& operator<<(std::ostream& os, TBC tbc) {
@@ -29,18 +24,6 @@ std::ostream& operator<<(std::ostream& os, TBC tbc) {
             os << "STRONGLY_TAKEN    "; break;
         default:
             os << "UNKNOWN_TBC_STATE "; break;
-    }
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, Branch br) {
-    switch(br) {
-        case Branch::Taken:
-            os << "BRANCH_TAKEN    "; break;
-        case Branch::NotTaken:
-            os << "BRANCH_NOT_TAKEN"; break;
-        default:
-            os << "BRANCH_UNKNOWN  "; break;
     }
     return os;
 }

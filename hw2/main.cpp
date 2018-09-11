@@ -7,6 +7,7 @@
 
 #include <MIPS_Tokenizer.h>
 #include <MIPS_Constants.h>
+#include <MIPS_Runtime.h>
 
 using namespace std;
 
@@ -20,12 +21,9 @@ auto T = Branch::Taken;
 
 int main(int argc, char* argv[]) {
 
-    MipsTokenizer mt("../asm/hw2-pb6.asm");
-    cout << "Number of instructions: " << mt.size() << endl;
-
     // Problem 1
 
-/*
+
     // Problem 2
     cout << "\nProblem 2:\n\n";
     {
@@ -46,6 +44,16 @@ int main(int argc, char* argv[]) {
         HistoryPredictor hp(3, 2, {ST, ST, SN, SN});
         hp.runSimulation({N, N, N, T, N, T, T, T}, 30, true); // w/i 13 cycles
     }
-*/
+
+    // Problem 6
+    cout << "\nProblem 5:\n\n";
+    {
+        MipsTokenizer mt("../asm/hw2-pb6.asm");
+        cout << "Number of instructions: " << mt.size() << endl;
+
+        
+
+    }
+
     return 0;
 }

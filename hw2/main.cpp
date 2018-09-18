@@ -51,12 +51,14 @@ int main(int argc, char* argv[]) {
     {
         MipsTokenizer mt("../asm/hw2-pb6.asm");
 
-        addr_t start_addr = 0;
         std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
 
-        MipsRuntime mr(0x800007C0);
-        //mr.poke(start_addr, mem_array);
-        //mr.execute(mt, 5);
+        MipsRuntime mr;
+        mr.setStartInstructionAddress(0x800007C0);
+        mr.setStartMemoryAddress(0x00000000);
+        mr.pokeMem(0x00000000, mem_array);
+        
+        
         
     }
 
@@ -64,9 +66,18 @@ int main(int argc, char* argv[]) {
     cout << "\nProblem 7:\n\n";
     {
         PsharePredictor psp(4); // 4 bits in the address used to calculate offset into PHT
+        psp.initPrivateHistoryTable(16, 2); // 16 PHT entries, 2 bits each, start at 0
+        psp.initBranchHistoryTable({SN, SN, SN, SN}); // BHT entries are assumed to be two-bit counters
+
+        MipsTokenizer mt("../asm/hw2-pb6.asm");
+
+        addr_t start_addr = 0;
+        std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
         
-        psp.initPrivateHistoryTable(16, 0L); // 16 PHT entries
-        psp.initBranchHistoryTable({SN, SN, SN, SN});
+        MipsRuntime mr;
+        mr.setStartMemoryAddress(0x800007C0);
+        mr.pokeMem(0x800007C0, mem_array);
+
     }
 
     return 0;

@@ -6,7 +6,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
+#include <stdexcept> // std::runtime_exception()
 #include "MIPS_Constants.h"
 
 //#define __DEBUG__
@@ -24,7 +24,7 @@ private:
     std::map<std::string, int> jump_offset_table;
 
     auto cleanSource(std::string filename) -> std::string; // returns new filename
-    auto finalizeJumpTargets(void) -> void; // turns jump offsets into targets
+    auto finalizeJumpTargets(void) -> void; // turn jump offsets into targets
 
 public:
     MipsTokenizer(std::string filename);
@@ -43,6 +43,8 @@ public:
     auto at(int index) -> MipsInstruction& {
         return this->instruction_stream.at(index); // safe access either way
     }
+
+    void dasm(void);
 
 };
 
@@ -162,6 +164,7 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 std::cout << "STATE_instruction\n";
                 #endif 
 
+                // figure out the opcode
                 if(current_str == "add") {
                     mi.opcode = MIPS_inst::add;
                     current_state = STATE_std_math;
@@ -379,7 +382,11 @@ int MipsTokenizer::strToOpcode(std::string op_str) {
     if(it != op_table.end())
         return it->second;
 
-    throw std::runtime_error(std::string("UNKNOWN OPCODE: ") + op_str);
+    throw std::runtime_error(std::string("MipsTokenizer::strToOpcode -> UNKNOWN OPCODE: ") + op_str);
+}
+
+void MipsTokenizer::dasm(void) {
+    throw std::runtime_error("MipsTokenizer::dasm -> NOT YET IMPLEMENTED");
 }
 
 #ifdef __DEBUG__

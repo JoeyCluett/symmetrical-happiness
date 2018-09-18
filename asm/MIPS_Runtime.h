@@ -99,8 +99,19 @@ public:
     }
 
     void pokeMem(addr_t start_addr, std::vector<int> data) {
-        for(int i = 0; i < data.size(); i++)
-            this->pokeMem(start_addr+i, data[i]);
+        for(int i = 0; i < data.size(); i++) {
+            if(this->linear) {
+                // std::vector access
+                while(this->linear_mem.size() <= (start_addr + data.size()) && this->linear_mem.size() < MAX_LINEAR_MEM_SIZE)
+                    this->linear_mem.push_back(0);
+
+                this->linear_mem.at(start_addr + i);
+
+            } else {
+                // std::map access
+                this->non_linear_mem[start_addr + (addr_t)(i << 2)] = data.at(i);
+            }
+        }
     }
 
     int setIntReg(int reg, int value) {

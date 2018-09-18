@@ -51,15 +51,26 @@ int main(int argc, char* argv[]) {
     {
         MipsTokenizer mt("../asm/hw2-pb6.asm");
 
-        std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
-
+        // executes MIPS32 tokens from the MIPS ASM tokenizer
         MipsRuntime mr;
-        mr.setStartInstructionAddress(0x800007C0);
-        mr.setStartMemoryAddress(0x00000000);
-        mr.pokeMem(0x00000000, mem_array);
-        
-        
-        
+
+        // setup the runtime
+        mr.setStartInstructionAddress(0x800007C0); // seldom used apart from branch history
+
+        mr.setStartDataAddress(0x00000000);
+        mr.pokeMem(0x00000000, {21, 18, 42, 7, 9, 31});
+        mr.reg(MIPS_reg::s[0]) = 0; // register points to the array in memory
+
+        // we will want to track various pieces of machinery in the simulator
+        mr.setTrackBranches(true);     // keep branching history (12 bytes/branch occurance, so be careful)
+        mr.setProgramLinearity(false); // this will be most programs
+
+        // execute the token stream for the given number of cycles
+        mr.execute(mt, 40);
+
+        cout << "Branch history: \n";
+        for(auto& bh : mr.getBranchHistory())
+            cout << bh << endl;
     }
 
     // Problem 7
@@ -70,14 +81,14 @@ int main(int argc, char* argv[]) {
         psp.initBranchHistoryTable({SN, SN, SN, SN}); // BHT entries are assumed to be two-bit counters
 
         MipsTokenizer mt("../asm/hw2-pb6.asm");
-
-        addr_t start_addr = 0;
-        std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
-        
         MipsRuntime mr;
-        mr.setStartMemoryAddress(0x800007C0);
-        mr.pokeMem(0x800007C0, mem_array);
 
+        mr.setStartInstructionAddress(0x800007C0);
+        mr.pokeMem(0x00000000, {21, 18, 42, 7, 9, 31});
+        mr.reg(MIPS_reg::s[0]) = 0;
+
+        // let simulator do its work for a few instructions
+        
     }
 
     return 0;

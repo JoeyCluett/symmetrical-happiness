@@ -193,6 +193,11 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                     mi.opcode = MIPS_inst::bne;
                     current_state = STATE_branch;
 
+                } else if(current_str == "halt") {
+                    mi.opcode = MIPS_inst::halt;
+                    // nothing else needed
+                    this->instruction_stream.push_back(mi);
+
                 } else {
                     throw std::runtime_error(std::string("UNKNOWN INSTRUCTION TOKEN: ") + current_str);
                 }

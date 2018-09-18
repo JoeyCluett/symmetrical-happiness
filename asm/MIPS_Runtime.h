@@ -10,7 +10,7 @@
 #include <BranchPredictor.h>
 #include <getch.h>
 
-#define __MIPSRT_DEBUG__ // see instruction names as they execute
+//#define __MIPSRT_DEBUG__ // see instruction names as they execute
 
 #define MAX_LINEAR_MEM_SIZE (1024*1024) // a full MB
 
@@ -19,12 +19,12 @@ private:
     int   int_reg_file[32];
     float float_reg_file[32];
 
-    bool linear;
+    bool linear = false; // this is what you will want MOST of the time
 
     addr_t mem_start_address = 0L;
     addr_t inst_start_address = 0L;
 
-    std::map<addr_t, int> non_linear_mem; // recommended if sparse program
+    std::map<addr_t, int> non_linear_mem; // recommended if program elements are far apart
     std::vector<int>      linear_mem;
 
     addr_t PC = 0;
@@ -41,12 +41,24 @@ public:
         }
     }
 
+    int& reg(int index) {
+        return int_reg_file[index];
+    }
+
+    float& fpReg(int index) {
+        return float_reg_file[index];
+    }
+
     void setStartInstructionAddress(addr_t address) {
         this->inst_start_address = address;
     }
 
-    void setStartMemoryAddress(addr_t address) {
+    void setStartDataAddress(addr_t address) {
         this->mem_start_address = address;
+    }
+
+    void setProgramLinearity(bool linear) {
+        this->linear = linear;
     }
 
     void setTrackBranches(bool track_branches) {
@@ -57,8 +69,18 @@ public:
         return this->branch_history;
     }
 
+    auto peekMem(addr_t addr, int n) -> std::string {
+        std::string ret = "{";
+        for(int i = 0; i < (n-1); i++) {
+            ret += std::to_string(this->fetchMem(addr + i));
+            ret += std::string(", ");
+        }
+        ret += std::to_string(this->fetchMem(addr + n - 1));
+        ret += std::string("}");
+        return ret;
+    }
+
     int pokeMem(addr_t addr, int data) {
-        addr -= mem_start_address;
         if(this->linear) {
             // std::vector access
             while(this->linear_mem.size() <= addr && this->linear_mem.size() < MAX_LINEAR_MEM_SIZE)
@@ -88,7 +110,10 @@ public:
     }
 
     int fetchMem(addr_t addr) {
-        addr -= this->mem_start_address;
+        #ifdef __MIPSRT_DEBUG__
+        std::cout << "fetchMem ";
+        #endif // __MIPSRT_DEBUG__
+
         if(this->linear) {
             return this->linear_mem.at(addr);
         } else {
@@ -104,23 +129,29 @@ public:
         for(int i = 0; i < cycles; i++) {
             MipsInstruction mi = mt[PC];
 
+            #ifdef __MIPSRT_DEBUG__
+            std::cout << std::hex << getEffectiveAddress(PC) << std::dec << " (" << PC << ") : ";
+            #endif // __MIPSRT_DEBUG__
+
             switch(mi.opcode) {
                 case MIPS_inst::add:
+                    int_reg_file[mi.argv[0]] = int_reg_file[mi.argv[1]] + int_reg_file[mi.argv[2]];
+                    PC++;
+
                     #ifdef __MIPSRT_DEBUG__
                     std::cout << "add\n";
                     #endif
 
-                    int_reg_file[mi.argv[0]] = int_reg_file[mi.argv[1]] + int_reg_file[mi.argv[2]];
-                    PC++;
                     break;
 
                 case MIPS_inst::lw:
+                    this->setIntReg(mi.argv[0], this->fetchMem(int_reg_file[mi.argv[2]] + mi.argv[1]));
+                    PC++;
+
                     #ifdef __MIPSRT_DEBUG__
                     std::cout << "lw\n";
                     #endif
 
-                    this->setIntReg(mi.argv[0], this->fetchMem(int_reg_file[mi.argv[2]] + mi.argv[1]));
-                    PC++;
                     break;
 
                 case MIPS_inst::sw:
@@ -183,7 +214,7 @@ public:
                 case MIPS_inst::beq:
                     #ifdef __MIPSRT_DEBUG__
                     std::cout << "beq\n";
-                    #endif
+                    #endif // __MIPSRT_DEBUG__
 
                     {
                         bool branch = (mi.argv[0] == mi.argv[1]);
@@ -197,6 +228,15 @@ public:
                         }
                     }
 
+                    break;
+
+                case MIPS_inst::halt:
+                    #ifdef __MIPSRT_DEBUG__
+                    std::cout << "halt\n";
+                    #endif // __MIPSRT_DEBUG__
+
+                    std::cout << "MIPS_inst::halt\n";
+                    return; // CPU has halted execution
                     break;
 
                 default:

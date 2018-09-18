@@ -39,7 +39,12 @@ struct BranchOccasion {
             this->branch_result = Branch::Taken;
     }
 
-} __attribute__((packed)); // ... otherwise, waste 7 bytes of space every time
+} __attribute__((packed)); // ... otherwise, waste 4 bytes of space every time
+
+std::ostream& operator<<(std::ostream& os, BranchOccasion& bo) {
+    os << std::hex << bo.address << std::dec << " (" << bo.address << ") : " << bo.branch_result;
+    return os;
+}
 
 typedef BranchOccasion BranchOccurance; // IDK WHAT TO NAME THIS THING!! SEND HELP!!
 
@@ -56,5 +61,7 @@ public:
     virtual Branch getPrediction(addr_t address) = 0;
     virtual bool simulate(BranchOccasion& bo) = 0; // smells funny...
 };
+
+typedef SharePredictor PC_Predictor; // predict based on PC and whatever is actaully inside the predictor
 
 #endif // __JJC__BRANCH__PREDICTOR__H__

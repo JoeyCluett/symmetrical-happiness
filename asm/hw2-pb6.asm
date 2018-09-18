@@ -1,5 +1,5 @@
     add $t0 $s0 $0
-    addi $t0 $t0 20
+    add $t0 $t0 $0
 outterLoop:
     add $a0 $s0 $0
     add $t1 $0 $0
@@ -16,3 +16,4 @@ continue:
     bne $a0 $t0 innerLoop
     bne $t1 $0 outterLoop
 
+    halt

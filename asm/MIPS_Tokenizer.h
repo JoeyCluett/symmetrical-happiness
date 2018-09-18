@@ -15,7 +15,7 @@ class MipsInstruction {
 public:
     int opcode;
     int argv[3];
-};
+}; // 16 bytes per intermediate instruction may be excessive
 
 class MipsTokenizer {
 private:
@@ -38,6 +38,10 @@ public:
 
     auto operator[](int index) -> MipsInstruction& {
         return this->instruction_stream.at(index); // safe access
+    }
+
+    auto at(int index) -> MipsInstruction& {
+        return this->instruction_stream.at(index); // safe access either way
     }
 
 };
@@ -377,5 +381,9 @@ int MipsTokenizer::strToOpcode(std::string op_str) {
 
     throw std::runtime_error(std::string("UNKNOWN OPCODE: ") + op_str);
 }
+
+#ifdef __DEBUG__
+#undef __DEBUG__
+#endif // __DEBUG__ (obviously)
 
 #endif // __JJC__MIPS__TOKENIZER__H__

@@ -4,6 +4,7 @@
 #include <Bits.h>
 #include <TwoBitCounter.h>
 #include <HistoryPredictor.h>
+#include <PShare.h>
 
 #include <MIPS_Tokenizer.h>
 #include <MIPS_Constants.h>
@@ -54,9 +55,18 @@ int main(int argc, char* argv[]) {
         std::vector<int> mem_array = {21, 18, 42, 7, 9, 31};
 
         MipsRuntime mr(0x800007C0);
-        mr.poke(start_addr, mem_array);
-        mr.execute(mt, 5);
+        //mr.poke(start_addr, mem_array);
+        //mr.execute(mt, 5);
         
+    }
+
+    // Problem 7
+    cout << "\nProblem 7:\n\n";
+    {
+        PsharePredictor psp(4); // 4 bits in the address used to calculate offset into PHT
+        
+        psp.initPrivateHistoryTable(16, 0L); // 16 PHT entries
+        psp.initBranchHistoryTable({SN, SN, SN, SN});
     }
 
     return 0;

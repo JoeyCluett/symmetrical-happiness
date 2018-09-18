@@ -7,6 +7,7 @@
 
 #include "MIPS_Tokenizer.h"
 #include "MIPS_Constants.h"
+#include <BranchOccasion.h>
 #include <getch.h>
 
 #define __MIPSRT_DEBUG__ // see instruction names as they execute
@@ -26,6 +27,9 @@ private:
     std::map<addr_t, int> non_linear_mem; // recommended if sparse program
     std::vector<int>      linear_mem;
 
+    std::vector<BranchOccasion> branch_history;
+    bool track_branches = false;
+
 public:
     MipsRuntime(addr_t inst_starting_address = 0, bool linear = false) {
         // zero out all registers
@@ -36,6 +40,14 @@ public:
 
         this->mem_starting_address = inst_starting_address;
         this->linear = linear;
+    }
+
+    void setTrackBranches(bool track_branches) {
+        this->track_branches = track_branches;
+    }
+
+    auto getBranchHistory(void) -> std::vector<BranchOccasion>& {
+        return *(this->branch_history);
     }
 
     int poke(addr_t addr, int data) {
@@ -77,8 +89,13 @@ public:
         }
     }
 
+    addr_t getEffectiveAddress(addr_t address) {
+        return (address + this->mem_starting_address);
+    }
+
     void execute(MipsTokenizer& mt, int cycles, bool wait_cycles = false) {
-        for(int PC = 0; PC < cycles;) {
+        addr_t PC = 0;
+        for(int i = 0; i < cycles; i++) {
             MipsInstruction mi = mt[PC];
 
             switch(mi.opcode) {
@@ -123,11 +140,18 @@ public:
                     std::cout << "bne\n";
                     #endif
 
-                    if(mi.argv[0] != mi.argv[1]) {
-                        PC = mi.argv[2];
-                    } else {
-                        PC++;
+                    {
+                        bool branch = (mi.argv[0] != mi.argv[1]);
+                        if(track_branches)  
+                            this->branch_history.push_back(BranchOccasion(getEffectiveAddress(PC), branch));
+                        
+                        if(branch) {
+                            PC = mi.argv[2];
+                        } else {
+                            PC++;
+                        }
                     }
+
                     break;
 
                 case MIPS_inst::slt:
@@ -155,11 +179,18 @@ public:
                     std::cout << "beq\n";
                     #endif
 
-                    if(mi.argv[0] == mi.argv[1]) {
-                        PC = mi.argv[2];
-                    } else {
-                        PC++;
+                    {
+                        bool branch = (mi.argv[0] == mi.argv[1]);
+                        if(track_branches)
+                            this->branch_history.push_back(BranchOccasion(getEffectiveAddress(PC), branch));
+
+                        if(branch) {
+                            PC = mi.argv[2];
+                        } else {
+                            PC++;
+                        }
                     }
+
                     break;
 
                 default:

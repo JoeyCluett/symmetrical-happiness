@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "hash_map": "cpp",
+        "*.tcc": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "system_error": "cpp"
+    }
+}

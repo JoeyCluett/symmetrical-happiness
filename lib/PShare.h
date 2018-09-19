@@ -33,6 +33,10 @@ public:
     u_int64_t getIndex(void) {
         return this->shift_history;
     }
+
+    int getNumBits(void) {
+        return this->num_bits;
+    }
 };
 
 class PsharePredictor : public SharePredictor {
@@ -102,7 +106,20 @@ public:
     friend std::ostream& operator<<(std::ostream& os, PsharePredictor& psp) {
         os << std::endl;
         
+        auto bit_string = [](uint64_t bit_rep, int num_bits) -> std::string {
+            std::string str = "";
+            for(int i = 0; i < num_bits; i++) {
+                str.push_back((bit_rep & (1 << (num_bits-i-1))) ? '1' : '0');
+            }
+            return str;
+        };
 
+        os << "Private History Table entries:\n";
+
+        int index = 0;
+        for(auto& l : psp.private_history_table) {
+            os << std::hex << index << std::dec << bit_string(l.getIndex(), l.getNumBits()) << std::endl;
+        }
 
         return os;
     }

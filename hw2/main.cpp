@@ -5,6 +5,7 @@
 #include <TwoBitCounter.h>
 #include <HistoryPredictor.h>
 #include <PShare.h>
+#include <getch.h> // getch() and getche()
 
 #include <MIPS_Tokenizer.h>
 #include <MIPS_Constants.h>
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
         mr.reg(MIPS_reg::s[0]) = 0; // register points to the array in memory
 
         // we will want to track various pieces of machinery in the simulator
-        mr.setTrackBranches(true);     // keep branching history (12 bytes/branch occurance, so be careful)
+        mr.setTrackBranches(false);     // keep branching history (12 bytes/branch occurance, so be careful)
         mr.setProgramLinearity(false); // this will be most programs
 
         // execute the token stream for the given number of cycles
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Problem 7
-    cout << "\nProblem 7:\n\n";
+/*    cout << "\nProblem 7:\n\n";
     {
         PsharePredictor psp(4); // 4 bits in the address used to calculate offset into PHT
         psp.initPrivateHistoryTable(16, 2); // 16 PHT entries, 2 bits each, start at 0
@@ -88,8 +89,17 @@ int main(int argc, char* argv[]) {
         mr.reg(MIPS_reg::s[0]) = 0;
 
         // let simulator do its work for a few instructions
-        
-    }
+        mr.execute(mt, 100);
+
+        int num_misses = 0;
+        for(auto& l : mr.getBranchHistory()) {
+            if(!psp.simulate(l))
+                num_misses++;
+            cout << psp << endl;
+        }
+
+        cout << "Branch misses: " << num_misses << endl;
+    }*/
 
     return 0;
 }

@@ -23,6 +23,9 @@ private:
     std::vector<int> jump_table;
     std::map<std::string, int> jump_offset_table;
 
+    std::map<std::string, int> reg_name_to_int;
+    std::vector<std::string>   int_to_reg_name;
+
     auto cleanSource(std::string filename) -> std::string; // returns new filename
     auto finalizeJumpTargets(void) -> void; // turn jump offsets into targets
 
@@ -34,7 +37,8 @@ public:
     }
 
     int strToOpcode(std::string op_str);
-    int strToRegOffset(std::string reg_str);
+    
+    int registerOffset(std::string reg_name);
 
     auto operator[](int index) -> MipsInstruction& {
         return this->instruction_stream.at(index); // safe access
@@ -212,9 +216,9 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 #endif 
 
                 // three registers
-                mi.argv[0] = strToRegOffset(string_stream[i+0]);
-                mi.argv[1] = strToRegOffset(string_stream[i+1]);
-                mi.argv[2] = strToRegOffset(string_stream[i+2]);
+                mi.argv[0] = registerOffset(string_stream[i+0]);
+                mi.argv[1] = registerOffset(string_stream[i+1]);
+                mi.argv[2] = registerOffset(string_stream[i+2]);
 
                 current_state = STATE_default;
                 i += 3; // skip the three operands
@@ -228,9 +232,9 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 std::cout << "STATE_lw/STATE_sw\n";
                 #endif
 
-                mi.argv[0] = strToRegOffset(string_stream[i+0]);
+                mi.argv[0] = registerOffset(string_stream[i+0]);
                 mi.argv[1] = std::stoi(string_stream[i+1]);
-                mi.argv[2] = strToRegOffset(string_stream[i+2]);
+                mi.argv[2] = registerOffset(string_stream[i+2]);
 
                 current_state = STATE_default;
                 i += 3;
@@ -242,8 +246,8 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 std::cout << "STATE_branch\n";
                 #endif
 
-                mi.argv[0] = strToRegOffset(string_stream[i+0]);
-                mi.argv[1] = strToRegOffset(string_stream[i+1]);
+                mi.argv[0] = registerOffset(string_stream[i+0]);
+                mi.argv[1] = registerOffset(string_stream[i+1]);
 
                 current_str = string_stream[i+2];
 
@@ -272,8 +276,8 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                 std::cout << "STATE_imm_math\n";
                 #endif
 
-                mi.argv[0] = strToRegOffset(string_stream[i+0]);
-                mi.argv[1] = strToRegOffset(string_stream[i+1]);
+                mi.argv[0] = registerOffset(string_stream[i+0]);
+                mi.argv[1] = registerOffset(string_stream[i+1]);
                 mi.argv[2] = std::stoi(string_stream[i+2]);
 
                 current_state = STATE_default;
@@ -310,67 +314,16 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
     }
 }
 
-int MipsTokenizer::strToRegOffset(std::string reg_str) {
-    if(reg_str[0] != '$')
-        throw std::runtime_error(std::string("UNKNOWN REGISTER STRING: ") + reg_str);
+int MipsTokenizer::registerOffset(std::string reg_name) {
+    auto iter = this->reg_name_to_int.find(reg_name);
+    if(iter != reg_name_to_int.end())
+        return iter->second; // register already exists, return the index
 
-    if(reg_str == "$zero" || reg_str == "$0")
-        return 0;
-
-    if(reg_str == "$at")
-        return 1;
-
-    if(reg_str == "$gp")
-        return 28;
-
-    if(reg_str == "$sp")
-        return 29;
-
-    if(reg_str == "$fp")
-        return 30;
-
-    if(reg_str == "$ra")
-        return 31;
-
-    if(reg_str[1] == 't') {
-        
-        int tmp = std::stoi(reg_str.c_str() + 2);
-        if(tmp <= 7 && tmp >= 0)
-            return tmp + 8;
-        else if(tmp == 8 || tmp == 9)
-            return tmp + 16;
-
-    } else if(reg_str[1] == 's') {
-
-        int tmp = std::stoi(reg_str.c_str() + 2);
-        if(tmp <= 7 && tmp >= 0)
-            return tmp + 16;
-
-    } else if(reg_str[1] == 'a') {
-
-        int tmp = std::stoi(reg_str.c_str() + 2);
-        if(tmp <= 3 && tmp >= 0)
-            return tmp + 4;
-
-    } else if(reg_str[1] == 'v') {
-
-        int tmp = std::stoi(reg_str.c_str() + 2);
-        if(tmp == 0 || tmp == 1)
-            return tmp + 2;
-
-    } else if(reg_str[1] == 'k') {
-
-        int tmp = std::stoi(reg_str.c_str() + 2);
-        if(tmp == 0 || tmp == 1)
-            return tmp + 26;
-
-    } else if(reg_str[1] == 'f') {
-
-        return std::stoi(reg_str.c_str() + 2) + 32; // mips32 has 32 integer registers and 32 fp registers
-
-    }
-
-    throw std::runtime_error(std::string("ERROR IN REGISTER FILE: ") + reg_str);
+    // register doesnt exist yet, create it
+    int new_register_index = this->int_to_reg_name.size();
+    int_to_reg_name.push_back(reg_name);
+    reg_name_to_int[reg_name] = new_register_index;
+    return new_register_index;
 }
 
 int MipsTokenizer::strToOpcode(std::string op_str) {
@@ -380,7 +333,8 @@ int MipsTokenizer::strToOpcode(std::string op_str) {
         {"slt",  MIPS_inst::slt},
         {"sw",   MIPS_inst::sw},
         {"bne",  MIPS_inst::bne},
-        {"addi", MIPS_inst::addi}
+        {"addi", MIPS_inst::addi},
+        {"halt", MIPS_inst::halt}
     };
 
     auto it = op_table.find(op_str);

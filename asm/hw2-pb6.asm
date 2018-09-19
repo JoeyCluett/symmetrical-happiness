@@ -1,5 +1,5 @@
     add $t0 $s0 $0
-    add $t0 $t0 $0
+    addi $t0 $t0 20
 outterLoop:
     add $a0 $s0 $0
     add $t1 $0 $0

@@ -10,143 +10,61 @@
 #include <BranchPredictor.h>
 #include <getch.h>
 
-//#define __MIPSRT_DEBUG__ // see instruction names as they execute
+#define __MIPSRT_DEBUG__ // see instruction names as they execute
 
 #define MAX_LINEAR_MEM_SIZE (1024*1024) // a full MB
 
+union MIPS_REGISTER {
+    int i32;
+    float f32;
+};
+
 class MipsRuntime {
 private:
-    int   int_reg_file[32];
-    float float_reg_file[32];
-
-    bool linear = false; // this is what you will want MOST of the time
-
-    addr_t mem_start_address = 0L;
-    addr_t inst_start_address = 0L;
-
-    std::map<addr_t, int> non_linear_mem; // recommended if program elements are far apart
-    std::vector<int>      linear_mem;
-
+    std::map<int, MIPS_REGISTER> register_file;
+    std::map<addr_t, int> memory; // recommended if program elements are far apart
     addr_t PC = 0;
 
-    std::vector<BranchOccasion> branch_history;
+    std::vector<BranchOccurance> branch_history;
     bool track_branches = false;
 
 public:
     MipsRuntime(void) {
-        // zero out all registers
-        for(int i = 0; i < 32; i++) {
-            this->int_reg_file[i]   = 0;
-            this->float_reg_file[i] = 0;
+        this->memory.clear();
+        this->register_file.clear();
+    }
+
+    void pokeMemory_i32(addr_t address, int data) {
+        this->memory[address] = data;
+    }
+
+    void pokeMemory_i32(addr_t start_address, std::vector<int> data) {
+        addr_t offset = 0L;
+        for(auto n : data) {
+            this->memory[start_address + offset] = n;
+            offset += 4;
         }
     }
 
-    int& reg(int index) {
-        return int_reg_file[index];
+    void pokeMemory_f32(addr_t address, float data) {
+        this->memory[address] = *(int*)&data;
     }
 
-    float& fpReg(int index) {
-        return float_reg_file[index];
-    }
-
-    void setStartInstructionAddress(addr_t address) {
-        this->inst_start_address = address;
-    }
-
-    void setStartDataAddress(addr_t address) {
-        this->mem_start_address = address;
-    }
-
-    void setProgramLinearity(bool linear) {
-        this->linear = linear;
-    }
-
-    void setTrackBranches(bool track_branches) {
-        this->track_branches = track_branches;
-    }
-
-    auto getBranchHistory(void) -> std::vector<BranchOccasion>& {
-        return this->branch_history;
-    }
-
-    auto peekMem(addr_t addr, int n) -> std::string {
-        std::string ret = "{";
-        for(int i = 0; i < (n-1); i++) {
-            ret += std::to_string(this->fetchMem(addr + i));
-            ret += std::string(", ");
-        }
-        ret += std::to_string(this->fetchMem(addr + n - 1));
-        ret += std::string("}");
-        return ret;
-    }
-
-    int pokeMem(addr_t addr, int data) {
-        if(this->linear) {
-            // std::vector access
-            while(this->linear_mem.size() <= addr && this->linear_mem.size() < MAX_LINEAR_MEM_SIZE)
-                this->linear_mem.push_back(0);
-
-            int tmp = this->linear_mem[addr];
-            linear_mem[addr] = data;
-            return tmp;
-
-        } else {
-            // std::map access
-            int tmp = this->non_linear_mem[addr];
-            this->non_linear_mem[addr] = data;
-            return tmp;
+    void pokeMemory_f32(addr_t start_address, std::vector<float> data) {
+        addr_t offset = 0L;
+        for(auto n : data) {
+            this->memory[start_address + offset] = n;
+            offset += 4;
         }
     }
 
-    void pokeMem(addr_t start_addr, std::vector<int> data) {
-        for(int i = 0; i < data.size(); i++) {
-            if(this->linear) {
-                // std::vector access
-                while(this->linear_mem.size() <= (start_addr + data.size()) && this->linear_mem.size() < MAX_LINEAR_MEM_SIZE)
-                    this->linear_mem.push_back(0);
-
-                this->linear_mem.at(start_addr + i);
-
-            } else {
-                // std::map access
-                this->non_linear_mem[start_addr + (addr_t)(i << 2)] = data.at(i);
-            }
-        }
-    }
-
-    int setIntReg(int reg, int value) {
-        int tmp = this->int_reg_file[reg];
-        this->int_reg_file[reg] = value;
-        return tmp;
-    }
-
-    int fetchMem(addr_t addr) {
-        #ifdef __MIPSRT_DEBUG__
-        std::cout << "fetchMem ";
-        #endif // __MIPSRT_DEBUG__
-
-        if(this->linear) {
-            return this->linear_mem.at(addr);
-        } else {
-            return this->non_linear_mem[addr];
-        }
-    }
-
-    addr_t getEffectiveAddress(addr_t trunc_address) {
-        return ((trunc_address << 2) + this->inst_start_address);
-    }
-
-    void execute(MipsTokenizer& mt, int cycles, bool wait_cycles = false) {
+    void execute(MipsTokenizer& mt, int cycles, addr_t starting_address, bool wait_cycles = false) {
         for(int i = 0; i < cycles; i++) {
             MipsInstruction mi = mt[PC];
 
-            #ifdef __MIPSRT_DEBUG__
-            std::cout << std::hex << getEffectiveAddress(PC) << std::dec << " (" << PC << ") : ";
-            #endif // __MIPSRT_DEBUG__
-
             switch(mi.opcode) {
                 case MIPS_inst::add:
-                    int_reg_file[mi.argv[0]] = int_reg_file[mi.argv[1]] + int_reg_file[mi.argv[2]];
+                    register_file[mi.argv[0]].i32 = register_file[mi.argv[1]].i32 + register_file[mi.argv[2]].i32;
                     PC++;
 
                     #ifdef __MIPSRT_DEBUG__
@@ -156,7 +74,8 @@ public:
                     break;
 
                 case MIPS_inst::lw:
-                    this->setIntReg(mi.argv[0], this->fetchMem(int_reg_file[mi.argv[2]] + mi.argv[1]));
+                    //this->setIntReg(mi.argv[0], this->fetchMem(int_reg_file[mi.argv[2]] + mi.argv[1]));
+                    register_file[mi.argv[0]].i32 = memory[register_file[mi.argv[2]].i32 + mi.argv[1]];
                     PC++;
 
                     #ifdef __MIPSRT_DEBUG__
@@ -170,7 +89,9 @@ public:
                     std::cout << "sw\n";
                     #endif
 
-                    this->pokeMem(int_reg_file[mi.argv[2]] + mi.argv[1], int_reg_file[mi.argv[0]]);
+                    //this->pokeMem(int_reg_file[mi.argv[2]] + mi.argv[1], int_reg_file[mi.argv[0]]);
+                    pokeMemory_i32(register_file[mi.argv[2]].i32 + mi.argv[1], register_file[mi.argv[0]].i32);
+
                     PC++;
                     break;
 
@@ -179,7 +100,7 @@ public:
                     std::cout << "addi\n";
                     #endif
 
-                    int_reg_file[mi.argv[0]] = int_reg_file[mi.argv[1]] + mi.argv[2];
+                    register_file[mi.argv[0]].i32 = register_file[mi.argv[1]].i32 + mi.argv[2];
                     PC++;
                     break;
 
@@ -191,7 +112,7 @@ public:
                     {
                         bool branch = (mi.argv[0] != mi.argv[1]);
                         if(track_branches)  
-                            this->branch_history.push_back(BranchOccasion(getEffectiveAddress(PC), branch));
+                            this->branch_history.push_back(BranchOccasion(starting_address +(PC << 2), branch));
                         
                         if(branch) {
                             PC = mi.argv[2];
@@ -207,11 +128,10 @@ public:
                     std::cout << "slt\n";
                     #endif
 
-                    if(int_reg_file[mi.argv[1]] < int_reg_file[mi.argv[2]]) {
-                        int_reg_file[mi.argv[0]] = 1;
-                    } else {
-                        int_reg_file[mi.argv[0]] = 0;
-                    }
+                    register_file[mi.argv[0]].i32 = 0;
+                    if(int_reg_file[mi.argv[1]] < int_reg_file[mi.argv[2]])
+                        register_file[mi.argv[0]].i32 = 1;
+
                     PC++;
                     break;
 

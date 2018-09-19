@@ -6,6 +6,7 @@
 #include <HistoryPredictor.h>
 #include <PShare.h>
 #include <getch.h> // getch() and getche()
+#include <jjc_macros.h> // LOOP() macro
 
 #include <MIPS_Tokenizer.h>
 #include <MIPS_Constants.h>
@@ -54,24 +55,16 @@ int main(int argc, char* argv[]) {
 
         // executes MIPS32 tokens from the MIPS ASM tokenizer
         MipsRuntime mr;
+        mr.pokeMemory_i32(0L, {21, 18, 42, 7, 9, 31});
 
-        // setup the runtime
-        mr.setStartInstructionAddress(0x800007C0); // seldom used apart from branch history
+        LOOP(i, 0, 100) {
+            mr.execute(mt, 1, 0x800007C0);
 
-        mr.setStartDataAddress(0x00000000);
-        mr.pokeMem(0x00000000, {21, 18, 42, 7, 9, 31});
-        mr.reg(MIPS_reg::s[0]) = 0; // register points to the array in memory
-
-        // we will want to track various pieces of machinery in the simulator
-        mr.setTrackBranches(false);     // keep branching history (12 bytes/branch occurance, so be careful)
-        mr.setProgramLinearity(false); // this will be most programs
-
-        // execute the token stream for the given number of cycles
-        mr.execute(mt, 40);
-
-        cout << "Branch history: \n";
-        for(auto& bh : mr.getBranchHistory())
-            cout << bh << endl;
+            //std::cout << "  - ";
+            //mr.peekMemory_i32(0, 6);
+            //std::cout << "\n";
+        }
+        mr.peekMemory_i32(0, 6);
     }
 
     // Problem 7

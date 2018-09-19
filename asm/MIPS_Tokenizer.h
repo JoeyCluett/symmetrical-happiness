@@ -40,8 +40,21 @@ public:
     
     int registerOffset(std::string reg_name);
 
+    std::string& registerName(int index) {
+        try {
+            return int_to_reg_name.at(index);
+        } catch(std::out_of_range& exc) {
+            // throw a more useful exception
+            throw std::runtime_error("MipsTokenizer::registerName -> register index does not exist");
+        }
+    }
+
     auto operator[](int index) -> MipsInstruction& {
-        return this->instruction_stream.at(index); // safe access
+        try {
+            return this->instruction_stream.at(index); // safe access
+        } catch(std::out_of_range& exc) {
+            throw std::runtime_error("MipsTokenizer::operator[] -> instruction index out of bounds");
+        }
     }
 
     auto at(int index) -> MipsInstruction& {

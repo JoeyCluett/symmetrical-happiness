@@ -9,6 +9,7 @@
 #include "MIPS_Constants.h"
 #include <BranchPredictor.h>
 #include <getch.h>
+#include <jjc_macros.h>
 
 #define __MIPSRT_DEBUG__ // see instruction names as they execute
 
@@ -22,7 +23,7 @@ union MIPS_REGISTER {
 class MipsRuntime {
 private:
     std::map<int, MIPS_REGISTER> register_file;
-    std::map<addr_t, int> memory; // recommended if program elements are far apart
+    std::map<addr_t, int> memory;
     addr_t PC = 0;
 
     std::vector<BranchOccurance> branch_history;
@@ -32,6 +33,10 @@ public:
     MipsRuntime(void) {
         this->memory.clear();
         this->register_file.clear();
+    }
+
+    void pokeReg_i32(std::string reg_name, int val) {
+        
     }
 
     void pokeMemory_i32(addr_t address, int data) {
@@ -58,6 +63,11 @@ public:
         }
     }
 
+    void peekMemory_i32(addr_t address, int n = 1) {
+        for(int i = 0; i < n; i++)
+            std::cout << this->memory[address + (i << 2)] << ' ';
+    }
+
     void execute(MipsTokenizer& mt, int cycles, addr_t starting_address, bool wait_cycles = false) {
         for(int i = 0; i < cycles; i++) {
             MipsInstruction mi = mt[PC];
@@ -68,7 +78,10 @@ public:
                     PC++;
 
                     #ifdef __MIPSRT_DEBUG__
-                    std::cout << "add\n";
+                    std::cout << "add ";
+                    LOOP(i, 0, 3)
+                        std::cout << mt.registerName(mi.argv[i]) << ' ';
+                    std::cout << std::endl;
                     #endif
 
                     break;
@@ -79,7 +92,9 @@ public:
                     PC++;
 
                     #ifdef __MIPSRT_DEBUG__
-                    std::cout << "lw\n";
+                    std::cout << "lw " << mt.registerName(mi.argv[0]) 
+                    << ' ' << mi.argv[1] << '(' << mt.registerName(mi.argv[2]) 
+                    << ')' << std::endl;
                     #endif
 
                     break;
@@ -129,7 +144,7 @@ public:
                     #endif
 
                     register_file[mi.argv[0]].i32 = 0;
-                    if(int_reg_file[mi.argv[1]] < int_reg_file[mi.argv[2]])
+                    if(register_file[mi.argv[1]].i32 < register_file[mi.argv[2]].i32)
                         register_file[mi.argv[0]].i32 = 1;
 
                     PC++;
@@ -150,7 +165,7 @@ public:
                     {
                         bool branch = (mi.argv[0] == mi.argv[1]);
                         if(track_branches)
-                            this->branch_history.push_back(BranchOccasion(getEffectiveAddress(PC), branch));
+                            this->branch_history.push_back(BranchOccasion(starting_address + (PC << 2), branch));
 
                         if(branch) {
                             PC = mi.argv[2];

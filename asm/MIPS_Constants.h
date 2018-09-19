@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-namespace MIPS_inst {
+namespace MIPS_inst { // most useful for the interpreter
 
     const int add  = 0;
     const int lw   = 1;
@@ -18,6 +18,7 @@ namespace MIPS_inst {
 
 };
 
+// only for standards compliant programs...
 namespace MIPS_reg {
     const int zero  = 0;
     const int at    = 1;

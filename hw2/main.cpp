@@ -54,16 +54,10 @@ int main(int argc, char* argv[]) {
         MipsTokenizer mt("../asm/hw2-pb6.asm");
 
         // executes MIPS32 tokens from the MIPS ASM tokenizer
-        MipsRuntime mr;
+        MipsRuntime mr(mt); // give a token stream to the runtime
         mr.pokeMemory_i32(0L, {21, 18, 42, 7, 9, 31});
 
-        LOOP(i, 0, 100) {
-            mr.execute(mt, 1, 0x800007C0);
-
-            //std::cout << "  - ";
-            //mr.peekMemory_i32(0, 6);
-            //std::cout << "\n";
-        }
+        mr.execute(mt, 1000, 0x800007C0);
         mr.peekMemory_i32(0, 6);
     }
 

@@ -11,13 +11,14 @@
 #include <getch.h>
 #include <jjc_macros.h>
 
-#define __MIPSRT_DEBUG__ // see instruction names as they execute
+//#define __MIPSRT_DEBUG__ // see instruction names anf registers as they execute
 
 #define MAX_LINEAR_MEM_SIZE (1024*1024) // a full MB
 
 union MIPS_REGISTER {
     int i32;
     float f32;
+    uint32_t u32;
 };
 
 class MipsRuntime {
@@ -29,14 +30,43 @@ private:
     std::vector<BranchOccurance> branch_history;
     bool track_branches = false;
 
+    MipsTokenizer* mt_ptr = NULL;
+
 public:
-    MipsRuntime(void) {
+    MipsRuntime(MipsTokenizer& mt) {
         this->memory.clear();
         this->register_file.clear();
+        this->mt_ptr = &mt;
     }
 
-    void pokeReg_i32(std::string reg_name, int val) {
-        
+    void peekRegister(std::string reg_name) {
+        int reg_index = mt_ptr->registerOffset(reg_name);
+        std::cout << reg_name << " : " << register_file.at(reg_index).i32 << std::endl;
+    }
+
+    // show all registers
+    void peekRegister(void) {
+        for(auto& l : register_file) {
+            std::string reg_name = mt_ptr->registerName(l.first);
+            std::cout << '{' << reg_name << " : " << l.second.i32 << "} ";
+        }
+        std::cout << std::endl;
+    }
+
+    // show every entry in memory
+    void peekMemory(void) {
+        for(auto& l : this->memory) {
+            std::cout << '{' << l.first << " : " << l.second << "} ";
+        }
+        std::cout << std::endl;
+    }
+
+    void pokeRegister(std::string reg_name, int val) {
+        register_file.at(mt_ptr->registerOffset(reg_name)).i32 = val;
+    }
+
+    void pokeRegister(std::string reg_name, float val) {
+        this->pokeRegister(reg_name, *(int*)&val);
     }
 
     void pokeMemory_i32(addr_t address, int data) {
@@ -51,24 +81,13 @@ public:
         }
     }
 
-    void pokeMemory_f32(addr_t address, float data) {
-        this->memory[address] = *(int*)&data;
-    }
-
-    void pokeMemory_f32(addr_t start_address, std::vector<float> data) {
-        addr_t offset = 0L;
-        for(auto n : data) {
-            this->memory[start_address + offset] = n;
-            offset += 4;
-        }
-    }
-
     void peekMemory_i32(addr_t address, int n = 1) {
         for(int i = 0; i < n; i++)
             std::cout << this->memory[address + (i << 2)] << ' ';
     }
 
-    void execute(MipsTokenizer& mt, int cycles, addr_t starting_address, bool wait_cycles = false) {
+    // returns whether program has exited
+    bool execute(MipsTokenizer& mt, int cycles, addr_t starting_address, bool wait_cycles = false) {
         for(int i = 0; i < cycles; i++) {
             MipsInstruction mi = mt[PC];
 
@@ -87,7 +106,6 @@ public:
                     break;
 
                 case MIPS_inst::lw:
-                    //this->setIntReg(mi.argv[0], this->fetchMem(int_reg_file[mi.argv[2]] + mi.argv[1]));
                     register_file[mi.argv[0]].i32 = memory[register_file[mi.argv[2]].i32 + mi.argv[1]];
                     PC++;
 
@@ -100,37 +118,47 @@ public:
                     break;
 
                 case MIPS_inst::sw:
+                    memory[register_file[mi.argv[2]].i32 + mi.argv[1]] = register_file[mi.argv[0]].i32;
+                    PC++;
+
                     #ifdef __MIPSRT_DEBUG__
-                    std::cout << "sw\n";
+                    std::cout << "sw " << mt.registerName(mi.argv[0]) 
+                    << ' ' << mi.argv[1] << '(' << mt.registerName(mi.argv[2]) 
+                    << ')' << std::endl;
                     #endif
 
-                    //this->pokeMem(int_reg_file[mi.argv[2]] + mi.argv[1], int_reg_file[mi.argv[0]]);
-                    pokeMemory_i32(register_file[mi.argv[2]].i32 + mi.argv[1], register_file[mi.argv[0]].i32);
-
-                    PC++;
                     break;
 
                 case MIPS_inst::addi:
-                    #ifdef __MIPSRT_DEBUG__
-                    std::cout << "addi\n";
-                    #endif
-
                     register_file[mi.argv[0]].i32 = register_file[mi.argv[1]].i32 + mi.argv[2];
                     PC++;
+
+                    #ifdef __MIPSRT_DEBUG__
+                    std::cout << "addi " << mt.registerName(mi.argv[0]) 
+                    << ' ' << mt.registerName(mi.argv[1]) << ' ' << mi.argv[2]
+                    << '\n';
+                    #endif
+
                     break;
 
                 case MIPS_inst::bne:
-                    #ifdef __MIPSRT_DEBUG__
-                    std::cout << "bne\n";
-                    #endif
-
                     {
-                        bool branch = (mi.argv[0] != mi.argv[1]);
-                        if(track_branches)  
-                            this->branch_history.push_back(BranchOccasion(starting_address +(PC << 2), branch));
+                        bool branch = (register_file[mi.argv[0]].i32 
+                                != register_file[mi.argv[1]].i32);
                         
+                        if(track_branches)  
+                            this->branch_history.push_back(BranchOccasion(starting_address 
+                            + (PC << 2), branch));
+                        
+                        #ifdef __MIPSRT_DEBUG__
+                        std::cout << "bne " << mt.registerName(mi.argv[0]) 
+                        << ' ' << mt.registerName(mi.argv[1]) 
+                        << ' ' << mt.jumpName(mi.argv[2]) 
+                        << (branch ? " -> TAKEN" : " -> NOT TAKEN") << std::endl;
+                        #endif // __MIPSRT_DEBUG__
+
                         if(branch) {
-                            PC = mi.argv[2];
+                            PC = *(uint32_t*)&mi.argv[2];
                         } else {
                             PC++;
                         }
@@ -139,15 +167,18 @@ public:
                     break;
 
                 case MIPS_inst::slt:
-                    #ifdef __MIPSRT_DEBUG__
-                    std::cout << "slt\n";
-                    #endif
-
                     register_file[mi.argv[0]].i32 = 0;
                     if(register_file[mi.argv[1]].i32 < register_file[mi.argv[2]].i32)
                         register_file[mi.argv[0]].i32 = 1;
-
                     PC++;
+
+                    #ifdef __MIPSRT_DEBUG__
+                    std::cout << "slt ";
+                    LOOP(i, 0, 3)
+                        std::cout << mt.registerName(mi.argv[i]) << ' ';
+                    std::cout << std::endl;
+                    #endif
+
                     break;
 
                 case MIPS_inst::b:
@@ -158,17 +189,23 @@ public:
                     throw std::runtime_error("MIPS_inst::b : THIS INSTRUCTION IS NOT DEFINED");
                 
                 case MIPS_inst::beq:
-                    #ifdef __MIPSRT_DEBUG__
-                    std::cout << "beq\n";
-                    #endif // __MIPSRT_DEBUG__
-
                     {
-                        bool branch = (mi.argv[0] == mi.argv[1]);
+                        bool branch = (register_file[mi.argv[0]].i32 
+                                == register_file[mi.argv[1]].i32);
+
                         if(track_branches)
-                            this->branch_history.push_back(BranchOccasion(starting_address + (PC << 2), branch));
+                            this->branch_history.push_back(BranchOccasion(starting_address + 
+                            (PC << 2), branch));
+
+                        #ifdef __MIPSRT_DEBUG__
+                        std::cout << "beq " << mt.registerName(mi.argv[0]) 
+                        << ' ' << mt.registerName(mi.argv[1]) 
+                        << ' ' << mt.jumpName(mi.argv[2]) 
+                        << (branch ? " -> TAKEN" : " -> NOT TAKEN") << std::endl;
+                        #endif // __MIPSRT_DEBUG__
 
                         if(branch) {
-                            PC = mi.argv[2];
+                            PC = *(uint32_t*)&mi.argv[2];
                         } else {
                             PC++;
                         }
@@ -181,8 +218,7 @@ public:
                     std::cout << "halt\n";
                     #endif // __MIPSRT_DEBUG__
 
-                    std::cout << "MIPS_inst::halt\n";
-                    return; // CPU has halted execution
+                    return true; // CPU has halted execution
                     break;
 
                 default:
@@ -195,6 +231,8 @@ public:
             }
 
         }
+
+        return false;
     }
 
 };

@@ -26,6 +26,8 @@ private:
     std::map<std::string, int> reg_name_to_int;
     std::vector<std::string>   int_to_reg_name;
 
+    std::map<int, std::string> jump_names;
+
     auto cleanSource(std::string filename) -> std::string; // returns new filename
     auto finalizeJumpTargets(void) -> void; // turn jump offsets into targets
 
@@ -39,6 +41,14 @@ public:
     int strToOpcode(std::string op_str);
     
     int registerOffset(std::string reg_name);
+
+    std::string& jumpName(int index) {
+        try {
+            return jump_names.at(index);
+        } catch(std::out_of_range& exc) {
+            throw std::runtime_error("MipsTokenizer::jumpName -> jump offset does not exist");
+        }
+    }
 
     std::string& registerName(int index) {
         try {
@@ -169,6 +179,9 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                         this->jump_table[index] = this->instruction_stream.size();
 
                     }
+
+                    // either way, save the jump location name
+                    this->jump_names[this->instruction_stream.size()] = current_str;
                 }
                 
                 current_state = STATE_default;
@@ -214,6 +227,7 @@ MipsTokenizer::MipsTokenizer(std::string filename) {
                     mi.opcode = MIPS_inst::halt;
                     // nothing else needed
                     this->instruction_stream.push_back(mi);
+                    current_state = STATE_default;
 
                 } else {
                     throw std::runtime_error(std::string("UNKNOWN INSTRUCTION TOKEN: ") + current_str);

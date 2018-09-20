@@ -39,6 +39,14 @@ public:
         this->mt_ptr = &mt;
     }
 
+    void trackBranches(bool track_branches) {
+        this->track_branches = track_branches;
+    }
+
+    auto getBranchHistory(void) -> std::vector<BranchOccurance>& {
+        return this->branch_history;
+    }
+
     void peekRegister(std::string reg_name) {
         int reg_index = mt_ptr->registerOffset(reg_name);
         std::cout << reg_name << " : " << register_file.at(reg_index).i32 << std::endl;

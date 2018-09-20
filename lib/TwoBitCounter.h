@@ -85,6 +85,12 @@ public:
         return this->state;
     }
 
+    bool simulate(Branch TNT) {
+        Branch pred = this->getPrediction();
+        this->update(TNT);
+        return (TNT == pred);    
+    }
+
     TBC operator()(Branch NT) {
         return this->update(NT);
     }

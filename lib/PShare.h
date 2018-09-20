@@ -5,6 +5,7 @@
 #include "HistoryPredictor.h"
 #include "BranchPredictor.h" // NotTaken, Taken
 #include "Bits.h"
+#include <jjc_macros.h>
 
 #include <vector>
 #include <iostream>
@@ -30,13 +31,19 @@ public:
             shift_history |= shift_bit; // shift in leftmost bit
     }
 
-    u_int64_t getIndex(void) {
+    u_int64_t getOutput(void) {
         return this->shift_history;
     }
 
     int getNumBits(void) {
         return this->num_bits;
     }
+
+    friend std::ostream& operator<<(std::ostream& os, PhtEntry& pe) {
+        os << Bits::bitPattern<uint64_t>(pe.shift_history, pe.num_bits);
+        return os;
+    }
+
 };
 
 class PsharePredictor : public SharePredictor {
@@ -82,7 +89,7 @@ public:
         this->last_pht_index = index; // need this for update
 
         // two pieces get xor'ed
-        index = (index ^ (int)private_history_table.at(index).getIndex()) & this->bht_index_mask;
+        index = (index ^ (int)private_history_table.at(index).getOutput()) & this->bht_index_mask;
         this->last_bht_index = index; // ...
 
         this->last_predicton = this->branch_history_table.at(index).getPrediction();
@@ -104,21 +111,35 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, PsharePredictor& psp) {
-        os << std::endl;
+        const char* label = "PHT";
         
-        auto bit_string = [](uint64_t bit_rep, int num_bits) -> std::string {
-            std::string str = "";
-            for(int i = 0; i < num_bits; i++) {
-                str.push_back((bit_rep & (1 << (num_bits-i-1))) ? '1' : '0');
-            }
-            return str;
-        };
+        auto& pht = psp.private_history_table;
+        auto& bht = psp.branch_history_table;
 
-        os << "Private History Table entries:\n";
+        os << "     " << label << SPACES(pht[0].getNumBits() + 1) << "BHT\n";
 
-        int index = 0;
-        for(auto& l : psp.private_history_table) {
-            os << std::hex << index << std::dec << bit_string(l.getIndex(), l.getNumBits()) << std::endl;
+        int pht_len = psp.private_history_table.size();
+        int bht_len = psp.branch_history_table.size();
+
+        int max_len = pht_len;
+        if(bht_len > max_len)
+            max_len = bht_len;
+
+        for(int i = 0; i < max_len; i++) {
+            std::string n = std::to_string(i);
+            os << SPACES(2-n.size()) << n << " : ";
+
+            if(i < pht.size())
+                os << pht[i];
+            else
+                os << SPACES(pht[i].getNumBits());
+
+            os << "    ";
+
+            if(i < bht.size())
+                os << bht[i] << std::endl;
+            else
+                os << std::endl;
         }
 
         return os;

@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "RegisterFile.h"
+#include "Constants.h"
 
 class InstructionQueueEntry {
 public:
@@ -22,8 +23,26 @@ public:
     };
 
     friend std::ostream& operator<<(std::ostream& os, InstructionQueueEntry& iqe) {
-        os << iqe.opcode_name_lut[iqe.opcode] << ' ' << iqe.dest << " <- " << 
-        iqe.source[0] << ' ' << iqe.source[1];
+        //os << iqe.opcode_name_lut[iqe.opcode] << ' ' << iqe.dest << " <- " << 
+        //iqe.source[0] << ' ' << iqe.source[1];
+        os << "R[" << iqe.dest << "] = R[" << iqe.source[0];
+
+        switch(iqe.opcode) {
+            case ADD:
+                os << "] + "; break;
+            case SUB:
+                os << "] - "; break;
+            case MUL:
+                os << "] * "; break;
+            case DIV:
+                os << "] / "; break;
+            default:
+                throw std::runtime_error("UNKNOWN OPCODE IN InstructionQueueEntry: " + std::to_string(iqe.opcode));
+                break;
+        }
+        
+        os << "R[" << iqe.source[1] << "]";
+
         return os;
     }
 

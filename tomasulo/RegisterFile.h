@@ -5,9 +5,14 @@
 #include <string>
 #define NOT_USED -1 // RAT entries for un-allocated registers
 
+union MultiType {
+    int i;
+    float f;
+};
+
 class RegisterEntry {
 public:
-    int rf; // value
+    MultiType rf; // value
     int rat 
         //= 1;
         = NOT_USED;
@@ -37,7 +42,7 @@ public:
     bool set_reg(int entry, int rf, int rat) {
         if(entry >= num_entries)
             return false;
-        regs[entry].rf  = rf;
+        regs[entry].rf.i  = rf;
         regs[entry].rat = rat;
         return true;
     }
@@ -47,7 +52,7 @@ public:
         os << "   RF              RAT\n";
         os << "-------------------------\n";
         for(int i = 0; i < rf.num_entries; i++) {
-            os << i << ": " << rf.int_with_length(rf.regs[i].rf, 11);
+            os << i << ": " << rf.int_with_length(rf.regs[i].rf.i, 11);
             if(rf.regs[i].rat != NOT_USED)
                 os << "     RS" << rf.regs[i].rat;
             else

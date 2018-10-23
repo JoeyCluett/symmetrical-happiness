@@ -52,16 +52,34 @@ typedef InstructionQueueEntry iq_entry_t;
 class InstructionQueue {
 private:
     std::vector<iq_entry_t> iq_entry_vec;
+    int instruction_pointer; // used internally
 
 public:
     // easy printing later on
     friend std::ostream& operator<<(std::ostream& os, InstructionQueue& iq) {
         os << "Number of instructions: " << iq.iq_entry_vec.size() << std::endl;
 
-        for(auto& in : iq.iq_entry_vec)
-            os << in << std::endl;
+        for(int i = iq.instruction_pointer; i < iq.iq_entry_vec.size(); i++)
+            os << iq.iq_entry_vec.at(i) << std::endl;
+
+        //for(auto& in : iq.iq_entry_vec)
+            //os << in << std::endl;
 
         return os;
+    }
+
+    bool hasNextInstruction(void) {
+        if(instruction_pointer >= iq_entry_vec.size())
+            return false;
+        return true;
+    }
+
+    iq_entry_t& getNextInstruction(void) {
+        return iq_entry_vec.at(instruction_pointer);
+    }
+
+    void advanceIPtr(void) {
+        this->instruction_pointer++;
     }
 
     InstructionQueue(std::string filename, reg_file_t& reg_file) {
@@ -120,6 +138,8 @@ public:
                     throw std::runtime_error("Unknow state in InstructionQueue::constructor()");
             }
         }
+
+        this->instruction_pointer = 0;
     }
 };
 

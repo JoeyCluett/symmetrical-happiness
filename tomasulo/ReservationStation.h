@@ -34,6 +34,16 @@ public:
     int cycles;
     int disp;
 
+    void reset(void) {
+        operation = -1;
+        Vj = -1;
+        Vk = -1;
+        Qj = 0;
+        Qk = 0;
+
+        cycles = 0;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, ReservationStationEntry& rse) {
     
         if(rse.busy == false) {
@@ -47,11 +57,22 @@ public:
             while(str.size() < sz) {
                 str += " ";
             }
-
-        }
+            return str;
+        };
 
         // print each integer in the correct size
-        if(Vj < )
+        for(int i : {rse.Vj, rse.Vk}) {
+            os << "| ";
+            if(i == -1) {
+                os << "XXX       ";
+            } else {
+                os << "RS" << bSize(i, 8);
+            }
+        }
+
+        for(int i : {rse.Qj, rse.Qk}) {
+            os << "| " << bSize(i, 10);
+        }
 
         return os;
     }
@@ -108,7 +129,7 @@ public:
 
     // assume Tomasulo has already tested for a free station
     // throw std::runtime_error otherwise
-    void dispatch(iq_entry_t& iq_entry) {
+    void issue(iq_entry_t& iq_entry) {
         int free_station = this->freeStation();
         if(free_station == -1)
             throw std::runtime_error("ReservationStationGroup::dispatch() -> cant do this... yet");
@@ -127,7 +148,7 @@ public:
     // looks for an entry that is ready to execute and 
     // pushes that entry to the execution unit. releases 
     // the reservation station. returns whether issue was possible
-    bool issue(void) {
+    bool dispatch(void) {
         if(this->eu.busy == true)
             return false;
 
@@ -164,14 +185,22 @@ public:
         return -1;
     }
 
+    // reset every reservation station entry referenced 
+    // by this object
+    void reset(void) {
+        for(int i : this->rs_indices) {
+            rstation_entry_t::station_entries.at(i)->reset();
+        }
+    }
+
     friend std::ostream& operator<<(std::ostream& os, ReservationStationGroup& rsg) {
         for(int i : rsg.ops) {
             os << op_symbol_lut.at(i) << ' ';
         }
 
-        os << "\n---------------------------------------------\n";
-        os << "# | Operation | ";
-        os << "\n---------------------------------------------\n";
+        os << "\n-------------------------------------------------------\n";
+        os << "# | Operation  | Vj        | Vk        | Qj        | Qk";
+        os << "\n-------------------------------------------------------\n";
 
         for(int i : rsg.rs_indices) {
             os << i << " | " << *rstation_entry_t::station_entries.at(i) << std::endl;

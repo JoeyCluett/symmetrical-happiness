@@ -26,15 +26,25 @@ int main(int argc, char* argv[]) {
         {MUL, DIV},
         {10,  40});
 
+    add_sub_group.reset();
+    mul_div_group.reset();
+
     // starting state
-    cout << iq << endl << endl;
-    cout << registerFile << endl;
+    //cout << iq << endl << endl;
+    //cout << registerFile << endl;
 
     // reservation station groups
-    cout << add_sub_group << endl << mul_div_group << endl;
+    //cout << add_sub_group << endl << mul_div_group << endl;
 
     // tell the Tomasulo simulator about all of the hardware we have
-    TomasuloUnit tu({&add_sub_group, &mul_div_group});
+    TomasuloUnit tu(
+        {&add_sub_group, &mul_div_group},
+        iq);
+
+    cout << "\n============================================\n" << tu << endl;
+    tu.simulate(2);
+    cout << "\n============================================\n" << tu << endl;
+
 
     return 0;
 }

@@ -1,10 +1,11 @@
 #include <vector>
 
-// custom libs (tomasulo folder)
+// custom libs (tomasulo folder, the compiler directs you to this)
 #include <Constants.h>
 #include <RegisterFile.h>
 #include <InstructionQueue.h>
 #include <ReservationStation.h>
+#include <TomasuloUnit.h>
 
 using namespace std;
 
@@ -16,9 +17,9 @@ int main(int argc, char* argv[]) {
     InstructionQueue iq("sim.txt", registerFile);
 
     rstation_group_t add_sub_group(
-        3, 
-        {ADD, SUB},
-        {2,   2});
+        3,          // stations in this group
+        {ADD, SUB}, // operations
+        {2,   2});  // latencies for each operation above
 
     rstation_group_t mul_div_group(
         2, 
@@ -29,7 +30,11 @@ int main(int argc, char* argv[]) {
     cout << iq << endl << endl;
     cout << registerFile << endl;
 
-    
+    // reservation station groups
+    cout << add_sub_group << endl << mul_div_group << endl;
+
+    // tell the Tomasulo simulator about all of the hardware we have
+    TomasuloUnit tu({&add_sub_group, &mul_div_group});
 
     return 0;
 }

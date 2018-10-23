@@ -8,5 +8,21 @@
 #define DIV (3)
 
 // plenty of space for other instruction opcodes
+// ...
+
+#include <vector>
+
+// operation lookup table for string ops
+const std::vector<const char*> operation_lut = {
+    "ADD        ",
+    "SUB        ",
+    "MUL        ",
+    "DIV        ",
+    "UNASSIGNED "
+};
+
+const std::vector<const char*> op_symbol_lut = {
+    "+", "-", "*", "/", "UNKNOWN"
+};
 
 #endif // __JJC__CONSTANTS__H__

@@ -8,6 +8,16 @@
 union MultiType {
     int i;
     float f;
+
+    MultiType(const int i) {
+        this->i = i;
+    }
+
+    MultiType(const float f) {
+        this->f = f;
+    }
+
+    MultiType(void) { }
 };
 
 class RegisterEntry {

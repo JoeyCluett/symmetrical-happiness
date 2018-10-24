@@ -1,4 +1,6 @@
 #include <vector>
+#include <stdio.h>
+#include <iostream>
 
 // custom libs (tomasulo folder, the compiler directs you to this)
 #include <Constants.h>
@@ -26,25 +28,29 @@ int main(int argc, char* argv[]) {
         {MUL, DIV},
         {10,  40});
 
+    // start with no operations queued
     add_sub_group.reset();
     mul_div_group.reset();
 
-    // starting state
-    //cout << iq << endl << endl;
-    //cout << registerFile << endl;
-
-    // reservation station groups
-    //cout << add_sub_group << endl << mul_div_group << endl;
-
     // tell the Tomasulo simulator about all of the hardware we have
     TomasuloUnit tu(
-        {&add_sub_group, &mul_div_group},
-        iq);
+        {&add_sub_group, &mul_div_group}, // reservation stations
+        iq,                               // instruction queue
+        registerFile);                    // register file
 
-    cout << "\n============================================\n" << tu << endl;
-    tu.simulate(2);
-    cout << "\n============================================\n" << tu << endl;
+    const char* sep = "\n============================================\n";
 
+    //CLEAR_SCREEN;
+    cout << sep << tu << endl;
+    getchar();
+
+    for(int i = 0; i < 2; i++) {
+        cout << sep;
+        tu.simulate(1);
+        cout << tu << endl;
+
+        getchar();
+    }    
 
     return 0;
 }

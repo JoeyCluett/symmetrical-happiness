@@ -3,17 +3,18 @@
 
 #include <iostream>
 #include <string>
+#include <stdexcept>
 #define NOT_USED -1 // RAT entries for un-allocated registers
 
 union MultiType {
     int i;
     float f;
 
-    MultiType(const int i) {
+    MultiType(int i) {
         this->i = i;
     }
 
-    MultiType(const float f) {
+    MultiType(float f) {
         this->f = f;
     }
 
@@ -26,6 +27,18 @@ public:
     int rat 
         //= 1;
         = NOT_USED;
+
+    friend std::ostream& operator<<(std::ostream& os, RegisterEntry& re) {
+        os << "rf: [" << re.rf.i << " / " << re.rf.f << "], ";
+        os << "rat: ";
+        if(re.rat == NOT_USED)
+            os << "NOT_USED";
+        else 
+            os << "RS" << re.rat;
+        os << std::endl;
+        return os; 
+    }
+
 };
 typedef RegisterEntry reg_entry_t;
 
@@ -42,22 +55,43 @@ private:
         return v;
     }
 
+    void verifyRegisterIndex(int index) {
+        if(index >= num_entries || index < 0)
+            throw std::runtime_error("RegisterFile::verifyRegisterIndex() -> invalid register index: "
+            + std::to_string(index));
+    }
+
 public:
     RegisterFile(int entries) {
         regs = new reg_entry_t[entries];
         this->num_entries = entries;
     }
 
+    bool allocated(int register_entry) {
+        verifyRegisterIndex(register_entry);
+
+        if(regs[register_entry].rat == NOT_USED)
+            return false;
+        return true;
+    }
+
+    RegisterEntry* getRegister(int index) {
+        verifyRegisterIndex(index);
+        //std::cout << "RegisterFile::getRegister() -> register index: " << index << std::endl;
+        //std::cout << "    " << regs[index] << std::endl;
+        return regs + index;
+    }
+
     // checks entry against number of registers
     bool set_reg(int entry, int rf, int rat) {
-        if(entry >= num_entries)
-            return false;
+        verifyRegisterIndex(entry);
+
         regs[entry].rf.i  = rf;
         regs[entry].rat = rat;
         return true;
     }
 
-    // easy to print the entire regsiter file
+    // easy to print the entire register file
     friend std::ostream& operator<<(std::ostream& os, RegisterFile& rf) {
         os << "   RF              RAT\n";
         os << "-------------------------\n";

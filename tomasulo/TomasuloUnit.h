@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <vector>
 #include <stdexcept>
+#include <iostream>
 
 // custom libs
 #include "ReservationStation.h"
@@ -15,15 +16,18 @@ class TomasuloUnit {
 private:
     std::vector<ReservationStationGroup*> res_stations;
     InstructionQueue* iq;
+    RegisterFile* rf;
 
 public:
     TomasuloUnit(
             std::initializer_list<ReservationStationGroup*> res_groups,
-            InstructionQueue& iq_ref) {
+            InstructionQueue& iq_ref,
+            RegisterFile& rf) {
         
         for(auto rsg : res_groups)
             this->res_stations.push_back(rsg);
         this->iq = &iq_ref;
+        this->rf = &rf;
     }
 
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {
@@ -33,6 +37,8 @@ public:
             os << *ptr << std::endl;
         }
 
+        os << *tu.rf << std::endl;
+
         return os;
     }
 
@@ -40,22 +46,35 @@ public:
         const int STATE_issue     = 0;
         const int STATE_dispatch  = 1;
         const int STATE_broadcast = 2;
-
         int current_state = STATE_issue;
 
-        for(int current_cycle = 0; current_cycle < cycles;) {
+        for(int current_cycle = 0; current_cycle < cycles; /* incremented by FSM */) {
             switch(current_state) {
                 case STATE_issue:
                     if(this->iq->hasNextInstruction() == true) {
                         auto inst = this->iq->getNextInstruction();
 
+                        // find a reservation station group that supports the operation
                         for(auto ptr : this->res_stations) {
-                            int free_station = ptr->freeStation();
-                            if(free_station >= 0) {
+                            if(ptr->supportsOperation(inst.opcode)) {
+                                // if reservation station does support, does it have a free entry?
+                                int free_station = ptr->freeStation();
 
-                                ptr->issue(inst);
-                                this->iq->advanceIPtr(); // instruction issue worked
-                                break;
+                                //std::cout << "TomasuloUnit::simulate() -> free reservation station: " 
+                                //<< free_station << std::endl << std::flush;
+
+                                if(free_station >= 0) {
+                                    // reservation station is free AND supports this operation
+                                    //std::cout << "    issuing instruction\n" << std::flush;
+                                    ptr->issue(inst, rf);
+                                    //std::cout << "    advancing instruction pointer\n" << std::flush;
+                                    this->iq->advanceIPtr(); // instruction issue worked
+
+                                    // register file RAT needs to point to correct RS
+                                                           
+
+                                    break;
+                                }
                             }
                         }
                     }
@@ -68,8 +87,9 @@ public:
                     current_state = STATE_broadcast;
                     break;
                 case STATE_broadcast:
-
-
+                    {
+                        
+                    }
                     current_cycle++;
                     current_state = STATE_issue;
                     break;

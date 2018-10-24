@@ -36,10 +36,10 @@ public:
 
     void reset(void) {
         operation = -1;
-        Vj = -1;
-        Vk = -1;
-        Qj = 0;
-        Qk = 0;
+        Vj = 0;
+        Vk = 0;
+        Qj = -1;
+        Qk = -1;
 
         cycles = 0;
     }
@@ -60,18 +60,18 @@ public:
             return str;
         };
 
-        // print each integer in the correct size
         for(int i : {rse.Vj, rse.Vk}) {
+            os << "| " << bSize(i, 10);
+        }
+
+        // print each integer in the correct size
+        for(int i : {rse.Qj, rse.Qk}) {
             os << "| ";
             if(i == -1) {
                 os << "XXX       ";
             } else {
                 os << "RS" << bSize(i, 8);
             }
-        }
-
-        for(int i : {rse.Qj, rse.Qk}) {
-            os << "| " << bSize(i, 10);
         }
 
         return os;
@@ -129,19 +129,40 @@ public:
 
     // assume Tomasulo has already tested for a free station
     // throw std::runtime_error otherwise
-    void issue(iq_entry_t& iq_entry) {
+    void issue(iq_entry_t& iq_entry, RegisterFile* rf) {
+        // returns index into global reservation station table
         int free_station = this->freeStation();
+
         if(free_station == -1)
-            throw std::runtime_error("ReservationStationGroup::dispatch() -> cant do this... yet");
+            throw std::runtime_error("ReservationStationGroup::dispatch() -> station not available");
         else {
             // there is only one storage space for all reservation stations
-            int station_index = this->rs_indices[free_station];
-            auto ptr = rstation_entry_t::station_entries.at(station_index);
+            auto ptr = rstation_entry_t::station_entries.at(free_station);
 
             // now ptr is the actual reservation station
             ptr->operation = iq_entry.opcode;
-            ptr->busy = true;
 
+            auto reg = rf->getRegister(iq_entry.source[0]);
+            if(reg->rat == NOT_USED) {
+                ptr->Vj = reg->rf.i;
+            } else {
+                ptr->Qj = reg->rat;
+            }
+
+            reg = rf->getRegister(iq_entry.source[1]);
+            if(reg->rat == NOT_USED) {
+                ptr->Vk = reg->rf.i;
+            } else {
+                ptr->Qk = reg->rat;
+            }
+
+            // register file needs to be updated
+            //std::cout << "Instruction destination: R" << iq_entry.dest << std::endl;
+            reg = rf->getRegister(iq_entry.dest);
+            reg->rat = free_station;
+
+            ptr->busy = true;
+            ptr->cycles = 0;
         }
     }
 
@@ -153,7 +174,6 @@ public:
             return false;
 
         // execution unit can accept an instruction to execute
-
         for(int i : rs_indices) {
             auto& rs = rstation_entry_t::station_entries[i];
             if(rs->Vj == -1 && rs->Vk == -1) {
@@ -165,6 +185,7 @@ public:
                 this->eu.input_1 = rs->Qj; // i am almost definitely screwing something up
                 this->eu.input_2 = rs->Qk;
 
+                rs->busy = false;
                 return true;
             }
         }
@@ -191,6 +212,7 @@ public:
         for(int i : this->rs_indices) {
             rstation_entry_t::station_entries.at(i)->reset();
         }
+        this->eu.operation = NONE;
     }
 
     friend std::ostream& operator<<(std::ostream& os, ReservationStationGroup& rsg) {
@@ -198,14 +220,18 @@ public:
             os << op_symbol_lut.at(i) << ' ';
         }
 
-        os << "\n-------------------------------------------------------\n";
-        os << "# | Operation  | Vj        | Vk        | Qj        | Qk";
-        os << "\n-------------------------------------------------------\n";
+        os << "\n-----------------------------------------------------------\n";
+        os <<   "# | Operation  | Vj        | Vk        | Qj        | Qk";
+        os << "\n-----------------------------------------------------------\n";
 
         for(int i : rsg.rs_indices) {
             os << i << " | " << *rstation_entry_t::station_entries.at(i) << std::endl;
         }
         os << std::endl;
+
+        os << "+----\n";
+        os << "| " << rsg.eu;
+        os << "+----\n\n";
 
         return os;
     }

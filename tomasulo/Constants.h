@@ -6,6 +6,7 @@
 #define SUB (1)
 #define MUL (2)
 #define DIV (3)
+#define NONE (4)
 
 // plenty of space for other instruction opcodes
 // ...
@@ -24,5 +25,11 @@ const std::vector<const char*> operation_lut = {
 const std::vector<const char*> op_symbol_lut = {
     "+", "-", "*", "/", "UNKNOWN"
 };
+
+#ifdef _WIN32
+#   define system("cls")
+#else __LINUX__
+#   define CLEAR_SCREEN system("clear")
+#endif // __LINUX__
 
 #endif // __JJC__CONSTANTS__H__

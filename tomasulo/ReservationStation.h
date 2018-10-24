@@ -112,6 +112,10 @@ public:
         this->entries = ops.size();
     }
 
+    ExecutionUnit* execUnit(void) {
+        return &this->eu;
+    }
+
     int timingForOperation(int operation) {
         for(int i = 0; i < ops.size(); i++) {
             if(ops[i] == operation)
@@ -196,6 +200,7 @@ public:
                 this->eu.operation = rs->operation;
                 this->eu.dest_reg = rs->disp; // destination register
                 this->eu.readyToBroadcast = false;
+                this->eu.source_rs = rs->index;
 
                 rs->reset();
                 return true;
@@ -230,10 +235,10 @@ public:
     void advanceExecutionUnit(void) {
         if(eu.current_cycles == eu.cycles_to_complete) {
             eu.readyToBroadcast = true;
-            return;
         }
-        else if(this->eu.busy && this->eu.readyToBroadcast == false)
+        else if(this->eu.busy && this->eu.readyToBroadcast == false) {
             this->eu.current_cycles++;
+        }
     }
 
     friend std::ostream& operator<<(std::ostream& os, ReservationStationGroup& rsg) {

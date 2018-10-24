@@ -100,8 +100,35 @@ public:
                     current_state = STATE_broadcast;
                     break;
                 case STATE_broadcast:
-                    {
-                        
+                    for(auto rsg : this->res_stations) {
+                        auto eu_ptr = rsg->execUnit();
+                        //std::cout << (eu_ptr->readyToBroadcast ? " ready to broadcast\n" : " not ready to broadcast\n");
+                        if(eu_ptr->readyToBroadcast) {
+                            // find all reservation stations waiting 
+                            // for this result and copy result
+                            for(auto rs_ptr : rstation_entry_t::station_entries) {
+                                if(rs_ptr->busy) {
+                                    if(rs_ptr->Qj == eu_ptr->source_rs) {
+                                        rs_ptr->Qj = -1;
+                                        rs_ptr->Vj = eu_ptr->getResult();
+                                    }
+
+                                    if(rs_ptr->Qk == eu_ptr->source_rs) {
+                                        rs_ptr->Qk = -1;
+                                        rs_ptr->Vk = eu_ptr->getResult();
+                                    }
+                                }
+                            }
+
+                            // if register file still has the tag for this 
+                            // instruction, update the value
+                            // sorry about the ridiculous pointer accesses
+                            auto reg_ptr = this->rf->getRegister(eu_ptr->dest_reg);
+                            if(reg_ptr->rat == eu_ptr->source_rs) {
+                                reg_ptr->rf.i = eu_ptr->getResult();
+                                reg_ptr->rat = -1; // not used anymore
+                            }
+                        }
                     }
                     current_state = STATE_final;
                     break;

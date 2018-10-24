@@ -28,7 +28,7 @@ const std::vector<const char*> op_symbol_lut = {
 
 #ifdef _WIN32
 #   define system("cls")
-#else __LINUX__
+#elif __LINUX__
 #   define CLEAR_SCREEN system("clear")
 #endif // __LINUX__
 

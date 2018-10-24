@@ -9,14 +9,52 @@
 #include <ReservationStation.h>
 #include <TomasuloUnit.h>
 
+/*
+    A completely modular and configurable 
+    Tomasulos Algorithm simulator
+
+    Every instance must have:
+        a.) a register file with well-defined number of registers.
+            this is something that you must know ahead of time, 
+            though I could write a configuration generator
+
+        b.) a single instruction queue. the queue is realized as 
+            a std::vector and the InstructionEntry class takes 
+            care of tracking all information needed to properly 
+            execute it
+
+            currently, the instruction queue is responsible for 
+            parsing the input file and creating the proper 
+            instruction sequences
+
+        c.) One or more reservation station groups. a group of 
+            stations is associated with an execution unit that 
+            is managed internally (dont worry about it)
+
+            when a ReservationStationEntry is instantiated, a 
+            reference to it is stored in an internal queue that 
+            maintains its order across multiple method calls and 
+            is accessed like a global pointer table. each entry, 
+            therefore, only needs to maintain in index into this table
+
+        d.) an instance of TomasuloUnit class. this takes care of 
+            passing data between all of the components given. it is 
+            written in a very general-purpose way so you can have 
+            any hardware configuration you'd like
+
+    This simulator does not currently support a re-order buffer
+*/
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    // register file has to be instantiated seperately
+    // register file has to be instantiated separately
     reg_file_t registerFile(8); // 8 entries
 
     // instructions are loaded here prior to execution
-    InstructionQueue iq("sim2.txt", registerFile);
+    InstructionQueue iq(
+        "sim2.txt", 
+        registerFile);
 
     rstation_group_t add_sub_group(
         3,          // stations in this group
@@ -34,7 +72,7 @@ int main(int argc, char* argv[]) {
 
     // tell the Tomasulo simulator about all of the hardware we have
     TomasuloUnit tu(
-        {&add_sub_group, &mul_div_group}, // reservation stations
+        {&add_sub_group, &mul_div_group}, // reservation stations (pointers)
         iq,                               // instruction queue
         registerFile);                    // register file
 
@@ -44,7 +82,7 @@ int main(int argc, char* argv[]) {
     cout << sep << tu << endl;
     getchar();
 
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 20; i++) {
         cout << sep;
         tu.simulate(1); // simulate 1 clock cycle
         cout << tu << endl;

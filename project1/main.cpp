@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     reg_file_t registerFile(8); // 8 entries
 
     // instructions are loaded here prior to execution
-    InstructionQueue iq("sim.txt", registerFile);
+    InstructionQueue iq("sim2.txt", registerFile);
 
     rstation_group_t add_sub_group(
         3,          // stations in this group
@@ -38,15 +38,15 @@ int main(int argc, char* argv[]) {
         iq,                               // instruction queue
         registerFile);                    // register file
 
-    const char* sep = "\n============================================\n";
+    const char* sep = "\n============================================\n\n";
 
     //CLEAR_SCREEN;
     cout << sep << tu << endl;
     getchar();
 
-    for(int i = 0; i < 2; i++) {
+    for(int i = 0; i < 15; i++) {
         cout << sep;
-        tu.simulate(1);
+        tu.simulate(1); // simulate 1 clock cycle
         cout << tu << endl;
 
         getchar();

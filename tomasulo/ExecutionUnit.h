@@ -9,6 +9,7 @@
 class ExecutionUnit {
 public:
     int busy = false;
+    int readyToBroadcast = false;
     
     int operation;
     int cycles_to_complete;
@@ -16,30 +17,33 @@ public:
     // increment every clock cycle
     int current_cycles = 0;
 
-    MultiType output = NONE;
+    int dest_reg = -1;
     MultiType input_1;
     MultiType input_2;
 
     friend std::ostream& operator<<(std::ostream& os, ExecutionUnit& eu) {
-        switch(eu.operation) {
-            case ADD:
-                os << eu.output.i << " = " << eu.input_1.i << " + " << eu.input_2.i << std::endl;
-                break;
-            case SUB:
-                os << eu.output.i << " = " << eu.input_1.i << " - " << eu.input_2.i << std::endl;
-                break;
-            case MUL:
-                os << eu.output.i << " = " << eu.input_1.i << " * " << eu.input_2.i << std::endl;
-                break;
-            case DIV:
-                os << eu.output.i << " = " << eu.input_1.i << " / " << eu.input_2.i << std::endl;
-                break;
-            case NONE:
-                os << "NO OP\n";
-                break;
-            default:
-                throw std::runtime_error("ExecutionUnit::operator<<() -> undefined operation");
-                break;
+        if(eu.operation != NONE) {
+            os << "R[" << eu.dest_reg << "] = " << eu.input_1.i;
+            switch(eu.operation) {
+                case ADD:
+                    os << " + "; break;
+                case SUB:
+                    os << " - "; break;
+                case MUL:
+                    os << " * "; break;
+                case DIV:
+                    os << " / "; break;
+                default:
+                    throw std::runtime_error("ExecutionUnit::operator<<() -> undefined operation");
+                    break;
+            }
+            os << eu.input_2.i << ", cycles[" << eu.current_cycles << '/' << eu.cycles_to_complete << "]";
+
+            if(eu.readyToBroadcast)
+                os << " READY";
+            os << std::endl;
+        } else {
+            os << "NO_OP\n";
         }
 
         return os;

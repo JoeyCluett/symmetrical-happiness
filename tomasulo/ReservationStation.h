@@ -26,6 +26,7 @@ public:
     }
 
     int busy = false;
+    int hadIssue = false;
     int operation;
     int Vj;
     int Vk;
@@ -40,6 +41,8 @@ public:
         Vk = 0;
         Qj = -1;
         Qk = -1;
+        busy = false;
+        hadIssue = false;
 
         cycles = 0;
     }
@@ -156,13 +159,16 @@ public:
                 ptr->Qk = reg->rat;
             }
 
+            // destination register
+            ptr->disp = iq_entry.dest;
+
             // register file needs to be updated
             //std::cout << "Instruction destination: R" << iq_entry.dest << std::endl;
             reg = rf->getRegister(iq_entry.dest);
             reg->rat = free_station;
-
             ptr->busy = true;
             ptr->cycles = 0;
+            ptr->hadIssue = true;
         }
     }
 
@@ -176,16 +182,22 @@ public:
         // execution unit can accept an instruction to execute
         for(int i : rs_indices) {
             auto& rs = rstation_entry_t::station_entries[i];
-            if(rs->Vj == -1 && rs->Vk == -1) {
+            if(rs->Qj == -1 && rs->Qk == -1 && rs->operation != -1 && rs->hadIssue == false) {
                 // instruction can be issued. someday I will implement 
                 // a cycle counter that will issue the oldest 
                 // instruction that can be executed
 
+                //std::cout << "ReservationStationGroup::dispatch()-> " 
+                //<< rs->operation << std::endl;
                 this->eu.cycles_to_complete = timingForOperation(rs->operation);
-                this->eu.input_1 = rs->Qj; // i am almost definitely screwing something up
-                this->eu.input_2 = rs->Qk;
+                this->eu.input_1 = rs->Vj; // i am almost definitely screwing something up
+                this->eu.input_2 = rs->Vk;
+                this->eu.busy = true;
+                this->eu.operation = rs->operation;
+                this->eu.dest_reg = rs->disp; // destination register
+                this->eu.readyToBroadcast = false;
 
-                rs->busy = false;
+                rs->reset();
                 return true;
             }
         }
@@ -215,7 +227,17 @@ public:
         this->eu.operation = NONE;
     }
 
+    void advanceExecutionUnit(void) {
+        if(eu.current_cycles == eu.cycles_to_complete) {
+            eu.readyToBroadcast = true;
+            return;
+        }
+        else if(this->eu.busy && this->eu.readyToBroadcast == false)
+            this->eu.current_cycles++;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, ReservationStationGroup& rsg) {
+        os << "   Operations: ";
         for(int i : rsg.ops) {
             os << op_symbol_lut.at(i) << ' ';
         }

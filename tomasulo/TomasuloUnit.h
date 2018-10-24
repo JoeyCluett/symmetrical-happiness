@@ -18,19 +18,24 @@ private:
     InstructionQueue* iq;
     RegisterFile* rf;
 
+    int simulation_cycles = 0;
+
 public:
     TomasuloUnit(
             std::initializer_list<ReservationStationGroup*> res_groups,
             InstructionQueue& iq_ref,
             RegisterFile& rf) {
         
-        for(auto rsg : res_groups)
-            this->res_stations.push_back(rsg);
+        //for(auto rsg : res_groups)
+        //    this->res_stations.push_back(rsg);
+        this->res_stations = res_groups;
         this->iq = &iq_ref;
         this->rf = &rf;
     }
 
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {
+        os << "After " << tu.simulation_cycles << " clock cycles\n\n";
+
         os << *tu.iq << std::endl;
 
         for(auto ptr : tu.res_stations) {
@@ -43,14 +48,21 @@ public:
     }
 
     void simulate(int cycles) {
+        this->simulation_cycles += cycles;
+
         const int STATE_issue     = 0;
         const int STATE_dispatch  = 1;
         const int STATE_broadcast = 2;
+        const int STATE_final     = 3;
         int current_state = STATE_issue;
 
         for(int current_cycle = 0; current_cycle < cycles; /* incremented by FSM */) {
             switch(current_state) {
                 case STATE_issue:
+                    // busy execution units advance one clock cycle
+                    for(auto rsg : res_stations)
+                        rsg->advanceExecutionUnit();
+
                     if(this->iq->hasNextInstruction() == true) {
                         auto inst = this->iq->getNextInstruction();
 
@@ -65,13 +77,8 @@ public:
 
                                 if(free_station >= 0) {
                                     // reservation station is free AND supports this operation
-                                    //std::cout << "    issuing instruction\n" << std::flush;
-                                    ptr->issue(inst, rf);
-                                    //std::cout << "    advancing instruction pointer\n" << std::flush;
+                                    ptr->issue(inst, rf); // also sets RF RAT properly
                                     this->iq->advanceIPtr(); // instruction issue worked
-
-                                    // register file RAT needs to point to correct RS
-                                                           
 
                                     break;
                                 }
@@ -81,15 +88,24 @@ public:
                     current_state = STATE_dispatch;
                     break;
                 case STATE_dispatch:
-                    {
-
+                    for(auto rs : res_stations) {
+                        rs->dispatch();
                     }
+
+                    // at this point any reservation stations that 
+                    // received instructions can dispatch on the next cycle
+                    for(auto ptr : rstation_entry_t::station_entries)
+                        ptr->hadIssue = false;
+
                     current_state = STATE_broadcast;
                     break;
                 case STATE_broadcast:
                     {
                         
                     }
+                    current_state = STATE_final;
+                    break;
+                case STATE_final:
                     current_cycle++;
                     current_state = STATE_issue;
                     break;

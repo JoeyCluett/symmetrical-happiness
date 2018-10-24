@@ -36,44 +36,6 @@ For more information, please refer to <http://unlicense.org/>
 #include <ReservationStation.h>
 #include <TomasuloUnit.h>
 
-/*
-    A completely modular and configurable 
-    Tomasulos Algorithm simulator
-
-    Every instance must have:
-        a.) a register file with well-defined number of registers.
-            this is something that you must know ahead of time, 
-            though I could write a configuration generator
-
-        b.) a single instruction queue. the queue is realized as 
-            a std::vector and the InstructionEntry class takes 
-            care of tracking all information needed to properly 
-            execute it
-
-            currently, the instruction queue is responsible for 
-            parsing the input file and creating the proper 
-            instruction sequences
-
-        c.) One or more reservation station groups. a group of 
-            stations is associated with an execution unit that 
-            is managed internally (dont worry about it)
-
-            when a ReservationStationEntry is instantiated, a 
-            reference to it is stored in an internal queue that 
-            maintains its order across multiple method calls and 
-            is accessed like a global pointer table. each entry, 
-            therefore, only needs to maintain in index into this table
-
-        d.) an instance of TomasuloUnit class. this takes care of 
-            passing data between all of the components given. it is 
-            written in a very general-purpose way so you can have 
-            any hardware configuration you'd like
-
-    This simulator does not currently support a re-order buffer
-    getchar() is used to pause the simulator between simulated clock cycles
-
-*/
-
 using namespace std;
 
 int main(int argc, char* argv[]) {

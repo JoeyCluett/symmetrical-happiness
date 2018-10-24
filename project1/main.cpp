@@ -43,6 +43,7 @@
             any hardware configuration you'd like
 
     This simulator does not currently support a re-order buffer
+    getchar() is used to pause the simulator between simulated clock cycles
 */
 
 using namespace std;

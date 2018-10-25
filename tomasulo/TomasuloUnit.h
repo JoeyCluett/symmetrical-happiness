@@ -39,6 +39,10 @@ For more information, please refer to <http://unlicense.org/>
 #include "Constants.h"
 #include "RegisterFile.h"
 
+#ifdef OS_LINUX
+#   include <ncurses.h> // prettier printing than just couting everything
+#endif // OS_LINUX
+
 class TomasuloUnit {
 private:
     std::vector<ReservationStationGroup*> res_stations;
@@ -46,6 +50,13 @@ private:
     RegisterFile* rf;
 
     int simulation_cycles = 0;
+
+#if defined(OS_LINUX) || defined(USE_UNIQUE_PRINTING)
+    const char* gc(std::ostream& os) {
+        std::stringstream& ss = (std::stringstream&)os;
+        return ss.str().c_str();
+    }
+#endif // LINUX
 
 public:
     TomasuloUnit(
@@ -58,9 +69,26 @@ public:
         this->res_stations = res_groups;
         this->iq = &iq_ref;
         this->rf = &rf;
+
+#if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
+        initscr();
+        cbreak();
+        //raw();
+        noecho();
+        refresh();
+
+#endif // pretty printing
+    }
+
+    ~TomasuloUnit(void) {
+#if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
+        endwin(); // causes funky window bugs if we dont
+#endif
     }
 
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {
+
+#if defined(OS_WINDOWS) || !defined(USE_UNIQUE_PRINTING)
         os << "After " << tu.simulation_cycles << " clock cycles\n\n";
         os << *tu.iq << std::endl;
 
@@ -68,6 +96,16 @@ public:
             os << *ptr << std::endl;
 
         os << *tu.rf << std::endl;
+#elif defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
+        erase();
+
+        // use ncurses to position things onscreen
+        os << "After " << tu.simulation_cycles << " clock cycles\n\n";
+        mvprintw(3, 2, "%s", tu.gc(os));
+        os.clear();
+
+        refresh();
+#endif // OS_*
 
         return os;
     }

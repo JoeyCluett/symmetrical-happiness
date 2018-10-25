@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
 
     rstation_group_t add_sub_group(
         //3,          // stations in this group
-        1,
+        4,
         {ADD, SUB}, // operations
         {2,   2});  // latencies for each operation above
 
@@ -71,16 +71,16 @@ int main(int argc, char* argv[]) {
     const char* sep = "\n============================================\n\n";
 
     //CLEAR_SCREEN;
-    cout << sep << tu << endl;
-    getchar();
+    COUT << tu;
+    //getchar();
 
     //for(int i = 0; i < 20; i++) {
     while(1) {
-        cout << sep;
         tu.simulate(1); // simulate 1 clock cycle
-        cout << tu << endl;
-
-        getchar();
+        
+        COUT << tu;
+        getch();
+        //getchar();
     }    
 
     return 0;

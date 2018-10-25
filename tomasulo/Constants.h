@@ -34,10 +34,14 @@ For more information, please refer to <http://unlicense.org/>
 #define DIV (3)
 #define NONE (4)
 
+// comment out to coerce entire system into using regular printing method
+#define USE_UNIQUE_PRINTING
+
 // plenty of space for other instruction opcodes
 // ...
 
 #include <vector>
+#include <sstream>
 
 // operation lookup table for string ops
 const std::vector<const char*> operation_lut = {
@@ -52,10 +56,25 @@ const std::vector<const char*> op_symbol_lut = {
     "+", "-", "*", "/", "UNKNOWN"
 };
 
-#ifdef _WIN32
-#   define system("cls")
-#elif __LINUX__
-#   define CLEAR_SCREEN system("clear")
-#endif // __LINUX__
+// HERE BE DRAGONS, YOUVE BEEN WARNED
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__)
+#    define CLEAR_SCREEN() system("cls") // dont remember much from my Batch days
+#    define OS_WINDOWS // easier than looking up a ton of other macros
+#elif defined(__linux__) || defined(__GNU__) || defined(__unix__)
+#    define CLEAR_SCREEN() system("clear")
+#    define OS_LINUX
+#endif // __OS_MACROS__
+
+#ifdef USE_UNIQUE_PRINTING
+#   if defined(OS_LINUX)
+        std::stringstream output_string_stream;
+        std::ostream& COUT = output_string_stream;
+#   elif defined(OS_WINDOWS)
+        std::ostream& COUT = std::cout;
+#   endif // OS_*
+#else
+    // redundant because Windows has to do it this way regardless
+    std::ostream& COUT = std::cout;
+#endif // USE_UNIQUE_PRINTING
 
 #endif // __JJC__CONSTANTS__H__

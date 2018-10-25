@@ -54,6 +54,7 @@ public:
 
     int busy = false;
     int hadIssue = false;
+    int executing = false;
     int operation;
     int Vj;
     int Vk;
@@ -64,14 +65,14 @@ public:
 
     void reset(void) {
         operation = -1;
-        Vj = 0;
-        Vk = 0;
-        Qj = -1;
-        Qk = -1;
-        busy = false;
-        hadIssue = false;
-
-        cycles = 0;
+        Vj        = 0;
+        Vk        = 0;
+        Qj        = -1;
+        Qk        = -1;
+        busy      = false;
+        hadIssue  = false;
+        executing = false;
+        cycles    = 0;
     }
 
     friend std::ostream& operator<<(std::ostream& os, ReservationStationEntry& rse) {
@@ -103,6 +104,8 @@ public:
                 os << "RS" << bSize(i, 8);
             }
         }
+
+        os << "| " << (rse.executing ? "TRUE" : "FALSE");
 
         return os;
     }
@@ -214,22 +217,24 @@ public:
         for(int i : rs_indices) {
             auto& rs = rstation_entry_t::station_entries[i];
             if(rs->Qj == -1 && rs->Qk == -1 && rs->operation != -1 && rs->hadIssue == false) {
-                // instruction can be issued. someday I will implement 
-                // a cycle counter that will issue the oldest 
+                // instruction can be dispatched. someday I will implement 
+                // a cycle counter that will dispatch the oldest 
                 // instruction that can be executed
 
                 //std::cout << "ReservationStationGroup::dispatch()-> " 
                 //<< rs->operation << std::endl;
                 this->eu.cycles_to_complete = timingForOperation(rs->operation);
-                this->eu.input_1 = rs->Vj; // i am almost definitely screwing something up
-                this->eu.input_2 = rs->Vk;
-                this->eu.busy = true;
-                this->eu.operation = rs->operation;
-                this->eu.dest_reg = rs->disp; // destination register
+                this->eu.input_1          = rs->Vj;
+                this->eu.input_2          = rs->Vk;
+                this->eu.busy             = true;
+                this->eu.operation        = rs->operation;
+                this->eu.dest_reg         = rs->disp; // destination register
                 this->eu.readyToBroadcast = false;
-                this->eu.source_rs = rs->index;
+                this->eu.source_rs        = rs->index;
 
-                rs->reset();
+                //rs->reset();
+                rs->executing = true;
+
                 return true;
             }
         }
@@ -239,11 +244,11 @@ public:
     }
 
     // does this reservation station group have a free entry?
-    // return -1 if no
+    // return -1 if none
     int freeStation(void) {
         for(auto i : rs_indices) {
-            if(ReservationStationEntry::station_entries.at(i)->busy 
-                    == false) {
+            auto rs_ptr = ReservationStationEntry::station_entries.at(i);
+            if(rs_ptr->busy == false && rs_ptr->executing == false) {
                 return i;
             }
         }
@@ -274,12 +279,19 @@ public:
             os << op_symbol_lut.at(i) << ' ';
         }
 
-        os << "\n-----------------------------------------------------------\n";
-        os <<   "# | Operation  | Vj        | Vk        | Qj        | Qk";
-        os << "\n-----------------------------------------------------------\n";
+        auto bSize = [](int i, int sz) -> std::string {
+            std::string str = std::to_string(i);
+            while(str.size() < sz)
+                str += " ";
+            return str;
+        };
+
+        os << "\n-------------------------------------------------------------------------\n";
+        os <<   "#   | Operation  | Vj        | Vk        | Qj        | Qj        | Disp";
+        os << "\n-------------------------------------------------------------------------\n";
 
         for(int i : rsg.rs_indices) {
-            os << i << " | " << *rstation_entry_t::station_entries.at(i) << std::endl;
+            os << bSize(i, 3) << " | " << *rstation_entry_t::station_entries.at(i) << std::endl;
         }
         os << std::endl;
 

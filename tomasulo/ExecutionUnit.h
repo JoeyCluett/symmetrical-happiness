@@ -49,6 +49,15 @@ public:
     MultiType input_1;
     MultiType input_2;
 
+    void reset(void) {
+        busy = false;
+        readyToBroadcast = false;
+        cycles_to_complete = -1;
+        current_cycles = 0;
+        source_rs = -1;
+        dest_reg = -1;
+    }
+
     int getResult(void) {
         switch(operation) {
             case ADD:
@@ -65,7 +74,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, ExecutionUnit& eu) {
-        if(eu.operation != NONE) {
+        if(eu.operation != NONE && eu.busy == true) {
             os << "R[" << eu.dest_reg << "] = " << eu.input_1.i;
             switch(eu.operation) {
                 case ADD:

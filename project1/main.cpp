@@ -48,7 +48,8 @@ int main(int argc, char* argv[]) {
         registerFile);
 
     rstation_group_t add_sub_group(
-        3,          // stations in this group
+        //3,          // stations in this group
+        1,
         {ADD, SUB}, // operations
         {2,   2});  // latencies for each operation above
 
@@ -73,7 +74,8 @@ int main(int argc, char* argv[]) {
     cout << sep << tu << endl;
     getchar();
 
-    for(int i = 0; i < 20; i++) {
+    //for(int i = 0; i < 20; i++) {
+    while(1) {
         cout << sep;
         tu.simulate(1); // simulate 1 clock cycle
         cout << tu << endl;

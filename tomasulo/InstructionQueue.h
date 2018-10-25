@@ -64,7 +64,8 @@ public:
             case DIV:
                 os << "] / "; break;
             default:
-                throw std::runtime_error("UNKNOWN OPCODE IN InstructionQueueEntry: " + std::to_string(iqe.opcode));
+                throw std::runtime_error("UNKNOWN OPCODE IN InstructionQueueEntry: " 
+                    + std::to_string(iqe.opcode));
                 break;
         }
         
@@ -86,8 +87,15 @@ public:
     friend std::ostream& operator<<(std::ostream& os, InstructionQueue& iq) {
         os << "Number of instructions: " << iq.iq_entry_vec.size() << std::endl;
 
-        for(int i = iq.instruction_pointer; i < iq.iq_entry_vec.size(); i++)
-            os << iq.iq_entry_vec.at(i) << std::endl;
+        for(int i = 0; i < iq.iq_entry_vec.size(); i++) {
+            os << iq.iq_entry_vec.at(i);
+            if(i == iq.instruction_pointer) {
+                os << " <-- NEXT INSTRUCTION\n";
+            } else {
+                os << "\n";
+            }
+        
+        }
 
         //for(auto& in : iq.iq_entry_vec)
             //os << in << std::endl;

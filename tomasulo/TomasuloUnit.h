@@ -62,12 +62,10 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {
         os << "After " << tu.simulation_cycles << " clock cycles\n\n";
-
         os << *tu.iq << std::endl;
 
-        for(auto ptr : tu.res_stations) {
+        for(auto ptr : tu.res_stations)
             os << *ptr << std::endl;
-        }
 
         os << *tu.rf << std::endl;
 
@@ -155,6 +153,10 @@ public:
                                 reg_ptr->rf.i = eu_ptr->getResult();
                                 reg_ptr->rat = -1; // not used anymore
                             }
+
+                            // prep execution unit for next instruction
+                            rstation_entry_t::station_entries.at(eu_ptr->source_rs)->reset();
+                            eu_ptr->reset();
                         }
                     }
                     current_state = STATE_final;
@@ -169,7 +171,6 @@ public:
         }
 
     }
-
 };
 
 #endif // __JJC__TOMASULO__UNIT__H__

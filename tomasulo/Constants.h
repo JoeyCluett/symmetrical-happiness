@@ -35,7 +35,7 @@ For more information, please refer to <http://unlicense.org/>
 #define NONE (4)
 
 // comment out to coerce entire system into using regular printing method
-#define USE_UNIQUE_PRINTING
+//#define USE_UNIQUE_PRINTING
 
 // plenty of space for other instruction opcodes
 // ...
@@ -76,5 +76,7 @@ const std::vector<const char*> op_symbol_lut = {
     // redundant because Windows has to do it this way regardless
     std::ostream& COUT = std::cout;
 #endif // USE_UNIQUE_PRINTING
+
+// end of macro spaghetti
 
 #endif // __JJC__CONSTANTS__H__

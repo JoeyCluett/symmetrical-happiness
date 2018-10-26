@@ -68,19 +68,18 @@ int main(int argc, char* argv[]) {
         iq,                               // instruction queue
         registerFile);                    // register file
 
-    const char* sep = "\n============================================\n\n";
+    //const char* sep = "\n============================================\n\n";
 
     //CLEAR_SCREEN;
     COUT << tu;
-    //getchar();
+    getchar();
 
     //for(int i = 0; i < 20; i++) {
     while(1) {
         tu.simulate(1); // simulate 1 clock cycle
         
         COUT << tu;
-        getch();
-        //getchar();
+        getchar();
     }    
 
     return 0;

@@ -117,6 +117,10 @@ public:
         this->instruction_pointer++;
     }
 
+    InstructionQueue(void) {
+        // this is here to support using ConfigGenerator
+    }
+
     InstructionQueue(std::string filename, reg_file_t& reg_file) {
         // default mode is formatted input
         std::ifstream is(filename);

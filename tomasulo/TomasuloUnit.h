@@ -51,7 +51,7 @@ private:
 
     int simulation_cycles = 0;
 
-#if defined(OS_LINUX) || defined(USE_UNIQUE_PRINTING)
+#if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
     const char* gc(std::ostream& os) {
         std::stringstream& ss = (std::stringstream&)os;
         return ss.str().c_str();
@@ -60,7 +60,7 @@ private:
 
 public:
     TomasuloUnit(
-            std::initializer_list<ReservationStationGroup*> res_groups,
+            std::vector<ReservationStationGroup*> res_groups,
             InstructionQueue& iq_ref,
             RegisterFile& rf) {
         
@@ -89,6 +89,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {
 
 #if defined(OS_WINDOWS) || !defined(USE_UNIQUE_PRINTING)
+        os << "\n =============================================================\n\n";
         os << "After " << tu.simulation_cycles << " clock cycles\n\n";
         os << *tu.iq << std::endl;
 

@@ -99,7 +99,7 @@ public:
         for(int i : {rse.Qj, rse.Qk}) {
             os << "| ";
             if(i == -1) {
-                os << "XXX       ";
+                os << "X         ";
             } else {
                 os << "RS" << bSize(i, 8);
             }
@@ -129,8 +129,8 @@ public:
     int entries;
 
     ReservationStationGroup(int entries,
-            std::initializer_list<int> ops,
-            std::initializer_list<int> timing) {
+            std::vector<int> ops,
+            std::vector<int> timing) {
 
         for(int i = 0; i < entries; i++) {
             auto entry = new rstation_entry_t();

@@ -117,6 +117,15 @@ public:
         this->instruction_pointer++;
     }
 
+    void addInstruction(int opcode, int dest_reg, int source1, int source2) {
+        iq_entry_t entry;
+        entry.dest = dest_reg;
+        entry.opcode = opcode;
+        entry.source[0] = source1;
+        entry.source[1] = source2;
+        this->iq_entry_vec.push_back(entry);
+    }
+
     InstructionQueue(void) {
         // this is here to support using ConfigGenerator
     }

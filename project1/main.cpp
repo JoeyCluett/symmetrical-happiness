@@ -36,9 +36,14 @@ For more information, please refer to <http://unlicense.org/>
 #include <ReservationStation.h>
 #include <TomasuloUnit.h>
 
+// moves hardware config from main to separate file
+#include <ConfigGenerator.h>
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
+
+/*
     // register file has to be instantiated separately
     reg_file_t registerFile(8); // 8 entries
 
@@ -70,11 +75,16 @@ int main(int argc, char* argv[]) {
 
     //const char* sep = "\n============================================\n\n";
 
-    //CLEAR_SCREEN;
+*/
+
+    ConfigGenerator cg("progs/example.config");
+    cg.useP1Format("sim2.txt");
+    cg.createCpuConfiguration();
+    auto& tu = cg.tu();
+
     COUT << tu;
     getchar();
 
-    //for(int i = 0; i < 20; i++) {
     while(1) {
         tu.simulate(1); // simulate 1 clock cycle
         

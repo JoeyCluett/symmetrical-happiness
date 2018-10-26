@@ -15,13 +15,19 @@
 
 class ConfigGenerator {
 private:
-    int number_of_registers = -1;
-    std::vector<int> registers;
+    // register configuration
+    int number_registers = -1;
+    std::vector<int> register_start_values;
+
+    // reservation stations go here before going into the TomasuloUnit
+    std::vector<ReservationStationGroup*> reservation_station_storage;
 
     // cant create simulation without an instruction queue
     bool has_instructions = false;
+    InstructionQueue* iq_ptr = NULL;
 
     // used to hold modules for simulation
+    RegisterFile* reg_file = NULL;
     TomasuloUnit* tu_ptr = NULL;
 
 public:
@@ -32,6 +38,12 @@ public:
     // more restricted than anything in the asm directory
     void useAsmFile(const std::string& filename);
 
+    // use the format given for project1
+    void useP1Format(const std::string& filename) {
+        this->iq_ptr = new InstructionQueue(filename, *this->reg_file);
+        this->has_instructions = true;
+    }
+
     // performs operations to internally synthesize 
     // tomasulo hardware (in software of course)
     void createCpuConfiguration(void);
@@ -40,6 +52,18 @@ public:
         return *tu_ptr;
     }
 };
+
+void ConfigGenerator::createCpuConfiguration(void) {
+    if(this->has_instructions == false) {
+        throw std::runtime_error(
+            "ConfigGenerator::createCpuConfiguration -> no instruction stream present");
+    }
+
+    tu_ptr = new TomasuloUnit(
+            this->reservation_station_storage,
+            *this->iq_ptr,
+            *this->reg_file);
+}
 
 ConfigGenerator::ConfigGenerator(const std::string& filename) {
     const int STATE_start    = 0;
@@ -60,9 +84,11 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
     std::string current_token = "CONFIG_END";
     std::ifstream input_file(filename, std::ios::in);
 
-    std::cout << "Reading configuration file...";
+    std::cout << "Reading configuration file...\n";
 
-    // for configuring reservation station entries
+    // for configuring reservation station entries.
+    // using temporaries here because you can have 
+    // more than one group of reservation station entries
     int reservation_station_entries = -1;
     std::vector<int> rstation_operations;
     std::vector<int> rstation_latencies;
@@ -72,6 +98,8 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
 
         switch(current_state) {
             case STATE_start:
+                std::cout << "  STATE_start\n";
+
                 if(current_token != "CONFIG_START") {
                     throw std::runtime_error(
                         "ConfigGenerator, STATE_start -> expecting CONFIG_START (got " 
@@ -81,6 +109,8 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                 }
                 break;
             case STATE_default:
+                std::cout << "  STATE_default\n";
+
                 if(current_token == "_num_registers") {
                     current_state = STATE_num_regs;
                 }
@@ -91,63 +121,145 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                     current_state = STATE_rstation;
                 }
                 else if(current_token == "CONFIG_END") {
+                    // verify a few pieces of information
+                    if(this->number_registers != this->register_start_values.size())
+                        throw std::runtime_error(
+                            "ConfigGenerator -> number of register start values must equal number of registers requested"
+                        );
+                    
+                    // create a register file
+                    this->reg_file = new RegisterFile(this->number_registers);
+ 
                     std::cout << "DONE\n";
                 }
                 break;
             case STATE_num_regs:
-                this->number_of_registers = std::stoi(current_token);
+                std::cout << "  STATE_num_regs\n";
+
+                if(this->number_registers != -1) {
+                    throw std::runtime_error(
+                        "ConfigGenerator, STATE_num_regs -> only specify the number of registers once"
+                    );
+                }
+                this->number_registers = std::stoi(current_token);
                 current_state = STATE_default;
                 break;
             case STATE_reg_vals:
-                if(this->number_of_registers < 0)
-                    throw std::runtime_error("ConfigGenerator, STATE_reg_vals -> specify the number of registers before their starting values");
-                if(this->registers.size() < this->number_of_registers) {
-                    this->registers.push_back(std::stoi(current_token));
+                std::cout << "  STATE_reg_vals\n";
+
+                if(current_token != "_end") {
+                    this->register_start_values.push_back(std::stoi(current_token));
                 } else {
-                    if(current_token != "_end") {
-                        throw std::runtime_error("ConfigGenerator, STATE_reg_vals -> expecting '_end' token after register values");
-                    } else {
-                        current_state = STATE_default;
-                    }
+                    current_state = STATE_default;
                 }
                 break;
             case STATE_rstation:
+                std::cout << "  STATE_rstation\n";
+
                 switch(current_rstation_state) {
                     case STATE_rstation_default:
-                        if(current_token == "_entries") {
+                        std::cout << "    STATE_rstation_default\n";
 
+                        if(current_token == "_entries") {
+                            current_rstation_state = STATE_rstation_entries;
                         }
                         else if(current_token == "_operations") {
-
+                            current_rstation_state = STATE_rstation_ops;
                         }
                         else if(current_token == "_latency") {
-
+                            current_rstation_state = STATE_rstation_latency;
                         }
                         else if(current_token == "_reservation_station_group_end") {
-                            current_state = STATE_default;
-                            
+
                             if(rstation_operations.size() != rstation_latencies.size()) {
-                                
+                                throw std::runtime_error(
+                                    "ConfigGenerator -> station operations and station latencies need to have the same number of entries"
+                                );
                             }
+
+                            if(reservation_station_entries == -1) {
+                                throw std::runtime_error(
+                                    "ConfigGenerator, rstation_group_end -> need to specify number of entries"
+                                );
+                            }
+
+                            // create a reservation station group
+                            auto rstation_ptr = new ReservationStationGroup(
+                                    reservation_station_entries,
+                                    rstation_operations,
+                                    rstation_latencies);
+                            rstation_ptr->reset();
+
+                            this->reservation_station_storage
+                                    .push_back(rstation_ptr);
+
+                            // reset temp storage for next station group
+                            reservation_station_entries = -1;
+                            rstation_operations.clear();
+                            rstation_latencies.clear();
+
+                            // set proper state for next iteration
+                            current_state = STATE_default;
                         }
                         else {
                             throw std::runtime_error(
-                                "ConfigGenerator, STATE_rtstaion -> unknown token: " 
+                                "ConfigGenerator, STATE_rtstaion_default -> unknown token: " 
                                 + current_token);
                         }
                         break;
                     case STATE_rstation_entries:
+                        std::cout << "    STATE_rstation_entries\n";
 
+                        if(reservation_station_entries != -1) {
+                            throw std::runtime_error(
+                                "ConfigGenerator, STATE_rstation_entries -> set the number of entries once per station group"
+                            );
+                        }
+
+                        reservation_station_entries = std::stoi(current_token);
+                        current_rstation_state = STATE_rstation_default;
                         break;
                     case STATE_rstation_ops:
+                        std::cout << "    STATE_rstation_ops\n";
+
+                        if(current_token == "_end") {
+                            current_rstation_state = STATE_rstation_default;
+                        } else {
+                            if(current_token == "ADD") {
+                                rstation_operations.push_back(ADD);
+                            }
+                            else if(current_token == "SUB") {
+                                rstation_operations.push_back(SUB);
+                            }
+                            else if(current_token == "MUL") {
+                                rstation_operations.push_back(MUL);
+                            }
+                            else if(current_token == "DIV") {
+                                rstation_operations.push_back(DIV);
+                            }
+                            else {
+                                throw std::runtime_error(
+                                    "ConfigGenerator, STATE_rstation_ops -> UNKNOWN OPERATION: "
+                                    + current_token
+                                );
+                            }
+                        }
                         break;
                     case STATE_rstation_latency:
+                        std::cout << "    STATE_rstation_latency\n";
+
+                        if(current_token == "_end") {
+                            current_rstation_state = STATE_rstation_default;
+                        } else {
+                            rstation_latencies.push_back(std::stoi(current_token));
+                        }
                         break;
                     default:
                         throw std::runtime_error(
                             "ConfigGenerator, STATE_rstation -> unknown substate"
                         );
                 }
+                break;
             default:
                 throw std::runtime_error("ConfigGenerator::ConfigGenerator -> unknown outer state");
         }

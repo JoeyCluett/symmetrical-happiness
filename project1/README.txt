@@ -39,7 +39,8 @@
 
     NOTES:
         1.) This simulator does not currently support 
-            a re-order buffer
+            a re-order buffer. The modularity of the system 
+            allows a reorder buffer to be added in later releases
 
         2.) getchar() is used to pause the simulator 
             between simulated clock cycles
@@ -79,8 +80,9 @@
             the entire thing must be recompiled every time a small change 
             is made to any file
 
-            I was able to compile this program with a single line of shell 
-            script which can be found in the build.sh file
+            In theory, the build script can be used to compile for Linux 
+            and Windows. However, I have not tested it on Windows. Other 
+            OS's are not a big priority for me
 
         8.) Licensing:
             This software is released under the terms of the 'unlicense'. I 

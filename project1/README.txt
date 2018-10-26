@@ -3,6 +3,11 @@
     Tomasulos Algorithm simulator
 
     Every instance must have:
+        ASIDE.) Since the inclusion of the ConfigGenerator class, 
+            you can simply make a separatecpu config file and let it 
+            generate all of the simulation components needed. 
+            otherwise follow the steps below:
+
         a.) a register file with well-defined number of registers.
             this is something that you must know ahead of time, 
             though I could write a configuration generator

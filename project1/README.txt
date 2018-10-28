@@ -58,6 +58,12 @@
             i didnt/dont know if the lab computers have the 
             correct libraries installed
 
+            P.S. I did get a form of pretty printing working 
+            using a quick-and-dirty custom library that 
+            maintains a block of text and inserts formatted 
+            characters in a grid. Would still like to use 
+            Ncurses someday
+
         6.) compile parameters:
             OS:        Ubuntu 16.04
             IDE:       Visual Studio Code
@@ -89,3 +95,47 @@
             have relinquished, in perpetuity, all copyright claims to this 
             software. One directory above this one is a LICENSE file with 
             more information including the full terms of the Unlicense
+
+
+
+// ====================================
+// Sample main.cpp not using ConfigGenerator
+// ====================================
+
+    // register file has to be instantiated separately
+    reg_file_t registerFile(8); // 8 entries
+
+    // instructions are loaded here prior to execution
+    InstructionQueue iq(
+        "sim2.txt", 
+        registerFile);
+
+    rstation_group_t add_sub_group(
+        //3,          // stations in this group
+        4,
+        {ADD, SUB}, // operations
+        {2,   2});  // latencies for each operation above
+
+    rstation_group_t mul_div_group(
+        2, 
+        {MUL, DIV},
+        {10,  40});
+
+    // start with no operations queued
+    add_sub_group.reset();
+    mul_div_group.reset();
+
+    // tell the Tomasulo simulator about all of the hardware we have
+    TomasuloUnit tu(
+        {&add_sub_group, &mul_div_group}, // reservation stations (pointers)
+        iq,                               // instruction queue
+        registerFile);                    // register file
+
+    COUT << tu;
+    getchar();
+    while(1) {
+        tu.simulate(1); // simulate 1 clock cycle
+        
+        COUT << tu;
+        getchar();
+    }    

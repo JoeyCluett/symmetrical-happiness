@@ -39,8 +39,11 @@ For more information, please refer to <http://unlicense.org/>
 #include "Constants.h"
 #include "RegisterFile.h"
 
-#ifdef OS_LINUX
-#   include <ncurses.h> // prettier printing than just couting everything
+#if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
+#   include <TextBlock.h> // prettier printing than just couting everything
+#   include <sys/ioctl.h>
+#   include <stdio.h>
+#   include <unistd.h>
 #endif // OS_LINUX
 
 class TomasuloUnit {
@@ -52,10 +55,7 @@ private:
     int simulation_cycles = 0;
 
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
-    const char* gc(std::ostream& os) {
-        std::stringstream& ss = (std::stringstream&)os;
-        return ss.str().c_str();
-    }
+    TextBlock* tb = NULL;
 #endif // LINUX
 
 public:
@@ -64,25 +64,22 @@ public:
             InstructionQueue& iq_ref,
             RegisterFile& rf) {
         
-        //for(auto rsg : res_groups)
-        //    this->res_stations.push_back(rsg);
         this->res_stations = res_groups;
         this->iq = &iq_ref;
         this->rf = &rf;
 
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
-        initscr();
-        cbreak();
-        //raw();
-        noecho();
-        refresh();
-
+        // find the terminal size and set TextBlock appropiately
+        winsize w;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+        std::cout << "Rows: " << w.ws_row << ", Cols: " << w.ws_col << std::endl;
+        this->tb = new TextBlock(w.ws_col, w.ws_row);
 #endif // pretty printing
     }
 
     ~TomasuloUnit(void) {
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
-        endwin(); // causes funky window bugs if we dont
+        //delete tb;
 #endif
     }
 
@@ -98,17 +95,60 @@ public:
 
         os << *tu.rf << std::endl;
 #elif defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
-        erase();
+        tu.tb->reset();
+        std::stringstream ss;
 
-        // use ncurses to position things onscreen
-        os << "After " << tu.simulation_cycles << " clock cycles\n\n";
-        mvprintw(3, 2, "%s", tu.gc(os));
-        os.clear();
+        ss.str("");
+        ss << "After " << tu.simulation_cycles << " clock cycles";
+        tu.tb->insert(0, 2, ss);
 
-        refresh();
+        ss.str("");
+        ss << *tu.iq;
+        tu.tb->insert(0, 7, ss);
+
+        ss.str("");
+        for(auto ptr : tu.res_stations)
+            ss << *ptr << std::endl;
+        tu.tb->insert(43, 7, ss);
+
+        ss.str("");
+        ss << *tu.rf;
+        tu.tb->insert(123, 7, ss);
+
+        // always print to stdout anyway
+        std::cout << *tu.tb << std::endl;
+
 #endif // OS_*
 
         return os;
+    }
+
+    bool hasActiveComponents(void) {
+        // test instruction queue
+        if(this->iq->hasNextInstruction())
+            return true;
+
+        // test reservation stations, we dont need to test 
+        // execution units because they are always tied to 
+        // a reservation station
+        for(auto ptr : rstation_entry_t::station_entries)
+            if(ptr->operation != -1)
+                return true;
+
+        // test register file
+        int rf_size = this->rf->rfSize();
+        for(int i = 0; i < rf_size; i++)
+            if(this->rf->getRegister(i)->rat != NOT_USED)
+                return true;
+
+        // nothing in the cpu is busy
+        return false;
+    }
+
+    // see how many cycles are required before the program completes
+    void benchmark(void) {
+        while(this->hasActiveComponents())
+            this->simulate(1);
     }
 
     void simulate(int cycles) {
@@ -173,12 +213,12 @@ public:
                             for(auto rs_ptr : rstation_entry_t::station_entries) {
                                 if(rs_ptr->busy) {
                                     if(rs_ptr->Qj == eu_ptr->source_rs) {
-                                        rs_ptr->Qj = -1;
+                                        rs_ptr->Qj = -1; // reset tag
                                         rs_ptr->Vj = eu_ptr->getResult();
                                     }
 
                                     if(rs_ptr->Qk == eu_ptr->source_rs) {
-                                        rs_ptr->Qk = -1;
+                                        rs_ptr->Qk = -1; // reset tag
                                         rs_ptr->Vk = eu_ptr->getResult();
                                     }
                                 }

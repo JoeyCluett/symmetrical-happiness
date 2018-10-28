@@ -84,7 +84,7 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
     std::string current_token = "CONFIG_END";
     std::ifstream input_file(filename, std::ios::in);
 
-    std::cout << "Reading configuration file...\n";
+    std::cout << "Reading configuration file...";
 
     // for configuring reservation station entries.
     // using temporaries here because you can have 
@@ -98,9 +98,9 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
 
         switch(current_state) {
             case STATE_start:
-                std::cout << "  STATE_start\n";
+                //std::cout << "  STATE_start\n";
 
-                if(current_token != "CONFIG_START") {
+                if(current_token != "CONFIG_START" && current_token != "ConfigStart") {
                     throw std::runtime_error(
                         "ConfigGenerator, STATE_start -> expecting CONFIG_START (got " 
                         + current_token + ")");
@@ -109,18 +109,22 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                 }
                 break;
             case STATE_default:
-                std::cout << "  STATE_default\n";
+                //std::cout << "  STATE_default\n";
 
-                if(current_token == "_num_registers") {
+                if(current_token == "_num_registers" ||
+                        current_token == "NumRegisters") {
                     current_state = STATE_num_regs;
                 }
-                else if(current_token == "_register_start_values") {
+                else if(current_token == "_register_start_values" ||
+                        current_token == "RegisterStartValues") {
                     current_state = STATE_reg_vals;
                 }
-                else if(current_token == "_reservation_station_group_start") {
+                else if(current_token == "_reservation_station_group_start" ||
+                        current_token == "ReservationStationGroupStart") {
                     current_state = STATE_rstation;
                 }
-                else if(current_token == "CONFIG_END") {
+                else if(current_token == "CONFIG_END" ||
+                        current_token == "ConfigEnd") {
                     // verify a few pieces of information
                     if(this->number_registers != this->register_start_values.size())
                         throw std::runtime_error(
@@ -134,7 +138,7 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                 }
                 break;
             case STATE_num_regs:
-                std::cout << "  STATE_num_regs\n";
+                //std::cout << "  STATE_num_regs\n";
 
                 if(this->number_registers != -1) {
                     throw std::runtime_error(
@@ -145,31 +149,35 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                 current_state = STATE_default;
                 break;
             case STATE_reg_vals:
-                std::cout << "  STATE_reg_vals\n";
+                //std::cout << "  STATE_reg_vals\n";
 
-                if(current_token != "_end") {
+                if(current_token != "_end" && current_token != "End") {
                     this->register_start_values.push_back(std::stoi(current_token));
                 } else {
                     current_state = STATE_default;
                 }
                 break;
             case STATE_rstation:
-                std::cout << "  STATE_rstation\n";
+                //std::cout << "  STATE_rstation\n";
 
                 switch(current_rstation_state) {
                     case STATE_rstation_default:
-                        std::cout << "    STATE_rstation_default\n";
+                        //std::cout << "    STATE_rstation_default\n";
 
-                        if(current_token == "_entries") {
+                        if(current_token == "_entries" ||
+                                current_token == "Entries") {
                             current_rstation_state = STATE_rstation_entries;
                         }
-                        else if(current_token == "_operations") {
+                        else if(current_token == "_operations" ||
+                                current_token == "Operations") {
                             current_rstation_state = STATE_rstation_ops;
                         }
-                        else if(current_token == "_latency") {
+                        else if(current_token == "_latency" ||
+                                current_token == "Latency") {
                             current_rstation_state = STATE_rstation_latency;
                         }
-                        else if(current_token == "_reservation_station_group_end") {
+                        else if(current_token == "_reservation_station_group_end" ||
+                                current_token == "ReservationStationGroupEnd") {
 
                             if(rstation_operations.size() != rstation_latencies.size()) {
                                 throw std::runtime_error(
@@ -208,7 +216,7 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                         }
                         break;
                     case STATE_rstation_entries:
-                        std::cout << "    STATE_rstation_entries\n";
+                        //std::cout << "    STATE_rstation_entries\n";
 
                         if(reservation_station_entries != -1) {
                             throw std::runtime_error(
@@ -220,9 +228,10 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                         current_rstation_state = STATE_rstation_default;
                         break;
                     case STATE_rstation_ops:
-                        std::cout << "    STATE_rstation_ops\n";
+                        //std::cout << "    STATE_rstation_ops\n";
 
-                        if(current_token == "_end") {
+                        if(current_token == "_end" ||
+                                current_token == "End") {
                             current_rstation_state = STATE_rstation_default;
                         } else {
                             if(current_token == "ADD") {
@@ -246,9 +255,10 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                         }
                         break;
                     case STATE_rstation_latency:
-                        std::cout << "    STATE_rstation_latency\n";
+                        //std::cout << "    STATE_rstation_latency\n";
 
-                        if(current_token == "_end") {
+                        if(current_token == "_end" ||
+                                current_token == "End") {
                             current_rstation_state = STATE_rstation_default;
                         } else {
                             rstation_latencies.push_back(std::stoi(current_token));
@@ -264,7 +274,7 @@ ConfigGenerator::ConfigGenerator(const std::string& filename) {
                 throw std::runtime_error("ConfigGenerator::ConfigGenerator -> unknown outer state");
         }
 
-    } while(current_token != "CONFIG_END");
+    } while(current_token != "CONFIG_END" && current_token != "ConfigEnd");
 
 }
 

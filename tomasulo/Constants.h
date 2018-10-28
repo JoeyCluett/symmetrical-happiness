@@ -35,7 +35,7 @@ For more information, please refer to <http://unlicense.org/>
 #define NONE (4)
 
 // comment out to coerce entire system into using regular printing method
-//#define USE_UNIQUE_PRINTING
+#define USE_UNIQUE_PRINTING
 
 // plenty of space for other instruction opcodes
 // ...

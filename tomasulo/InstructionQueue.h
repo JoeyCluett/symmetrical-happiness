@@ -90,7 +90,7 @@ public:
         for(int i = 0; i < iq.iq_entry_vec.size(); i++) {
             os << iq.iq_entry_vec.at(i);
             if(i == iq.instruction_pointer) {
-                os << " <-- NEXT INSTRUCTION\n";
+                os << " <--\n";
             } else {
                 os << "\n";
             }

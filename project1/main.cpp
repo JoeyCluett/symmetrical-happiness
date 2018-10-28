@@ -28,6 +28,7 @@ For more information, please refer to <http://unlicense.org/>
 #include <vector>
 #include <stdio.h>
 #include <iostream>
+#include <string>
 
 // custom libs (tomasulo folder, the compiler directs you to this)
 #include <Constants.h>
@@ -42,55 +43,36 @@ For more information, please refer to <http://unlicense.org/>
 using namespace std;
 
 int main(int argc, char* argv[]) {
+    if(argc != 4) {
+        cout << "Usage:\n    " << argv[0] << " <cpu config file> <P1 simulator file> <'bmark'|'step'>\n";
+        return 1;
+    }
 
-/*
-    // register file has to be instantiated separately
-    reg_file_t registerFile(8); // 8 entries
-
-    // instructions are loaded here prior to execution
-    InstructionQueue iq(
-        "sim2.txt", 
-        registerFile);
-
-    rstation_group_t add_sub_group(
-        //3,          // stations in this group
-        4,
-        {ADD, SUB}, // operations
-        {2,   2});  // latencies for each operation above
-
-    rstation_group_t mul_div_group(
-        2, 
-        {MUL, DIV},
-        {10,  40});
-
-    // start with no operations queued
-    add_sub_group.reset();
-    mul_div_group.reset();
-
-    // tell the Tomasulo simulator about all of the hardware we have
-    TomasuloUnit tu(
-        {&add_sub_group, &mul_div_group}, // reservation stations (pointers)
-        iq,                               // instruction queue
-        registerFile);                    // register file
-
-    //const char* sep = "\n============================================\n\n";
-
-*/
-
-    ConfigGenerator cg("progs/example.config");
-    cg.useP1Format("sim2.txt");
+    ConfigGenerator cg(argv[1]);
+    cg.useP1Format(argv[2]);
     cg.createCpuConfiguration();
     auto& tu = cg.tu();
 
-    COUT << tu;
-    getchar();
+    string runtime_option = argv[3];
 
-    while(1) {
-        tu.simulate(1); // simulate 1 clock cycle
-        
+    if(runtime_option == "bmark") {
+        tu.benchmark();
+        COUT << tu;
+    }
+    else if(runtime_option == "step") {
+
         COUT << tu;
         getchar();
-    }    
+        while(1) {
+            tu.simulate(1); // simulate 1 clock cycle
+            
+            COUT << tu;
+            getchar();
+        }    
+    }
+    else {
+        throw runtime_error("main.cpp -> expecting <'bmark'|'step'>, got " + runtime_option);
+    }
 
     return 0;
 }

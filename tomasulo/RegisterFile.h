@@ -94,6 +94,10 @@ public:
         this->num_entries = entries;
     }
 
+    int rfSize(void) {
+        return this->num_entries;
+    }
+
     bool allocated(int register_entry) {
         verifyRegisterIndex(register_entry);
 

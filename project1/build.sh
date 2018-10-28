@@ -6,7 +6,7 @@ echo "Compiling for ${OSTYPE}"
 
 case "$OSTYPE" in
     linux-gnu)
-        g++ -o main main.cpp ${UNI_OPTS} -lncurses
+        g++ -o main main.cpp ${UNI_OPTS} -I./../misc
     ;;
 
     msys)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-UNI_OPTS="-std=c++11 -O3 -march=native -I./../tomasulo"
+UNI_OPTS="-std=c++11 -O3 -march=native -I./../tomasulo -I./../rapidxml"
 
 echo "Compiling for ${OSTYPE}"
 

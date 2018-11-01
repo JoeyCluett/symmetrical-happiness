@@ -30,9 +30,11 @@ private:
     RegisterFile* reg_file = NULL;
     TomasuloUnit* tu_ptr = NULL;
 
+    void parse_xml_config_file(const std::string& filename);
+
 public:
     // config file uses custom file format specification
-    ConfigGenerator(const std::string& filename);
+    ConfigGenerator(const std::string& filename, const int parse_file_type = CONFIG_TYPE_CUSTOM);
 
     // just a simple MIPS32 assembly file. currently much 
     // more restricted than anything in the asm directory

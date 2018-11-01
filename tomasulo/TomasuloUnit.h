@@ -39,6 +39,9 @@ For more information, please refer to <http://unlicense.org/>
 #include "Constants.h"
 #include "RegisterFile.h"
 
+// XML parser
+#include <rapidxml.hpp> // the compiler will help us out here
+
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
 #   include <TextBlock.h> // prettier printing than just couting everything
 #   include <sys/ioctl.h>

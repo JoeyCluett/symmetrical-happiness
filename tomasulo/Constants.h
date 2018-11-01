@@ -34,6 +34,10 @@ For more information, please refer to <http://unlicense.org/>
 #define DIV (3)
 #define NONE (4)
 
+// configuration file data
+const int CONFIG_TYPE_CUSTOM = 0;
+const int CONFIG_TYPE_XML    = 1;
+
 // comment out to coerce entire system into using regular printing method
 #define USE_UNIQUE_PRINTING
 

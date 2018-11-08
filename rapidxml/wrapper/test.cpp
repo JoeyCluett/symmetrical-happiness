@@ -1,15 +1,14 @@
 #include <iostream>
-#include "XmlWrapper.h"
+#include "XmlDocument.h"
+#include "XmlNode.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
 
-    XmlWrapper xml_wrapper("config.xml");
+    XmlDocument doc("config.xml");
 
-    auto node = xml_wrapper.rootNode();
-    if(node != "ConfigStart")
-        throw std::runtime_error("");
+    cout << doc << endl;
 
     return 0;
 }

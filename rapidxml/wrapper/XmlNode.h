@@ -8,88 +8,72 @@
 
 using namespace rapidxml;
 
-class XmlNode {
+class XmlAttribute {
 private:
-    // this shouldnt be used from user program 
-    // directly. use access methods
-    xml_node<>* node_name;
-    xml_attribute<>* attr_name;
+    xml_attribute<>* _attr;
 
 public:
+    XmlAttribute(xml_attribute<>* _attr) : _attr(_attr) { }
 
-    XmlNode(void) {
-        this->node_name = NULL;
-        this->attr_name = NULL;
-    }
-
-    XmlNode(xml_node<>* ptr) {
-        this->node_name = ptr;
-        this->attr_name = NULL;
-    }
-
-    XmlNode(xml_attribute<>* ptr) {
-        this->attr_name = ptr;
-        this->node_name = NULL;
-    }
-
-    // copy constructor
-    XmlNode(const XmlNode& node) {
-        this->node_name = node.node_name;
-        this->attr_name = node.attr_name;
-    }
-
-    XmlNode nextSibling(void) {
-        return XmlNode(this->node_name->next_sibling());
-    }
-
-    XmlNode child(const std::string& name) {
-        return XmlNode(this->node_name->first_node(name.c_str()));
-    }
-
-    XmlNode child(void) {
-        return XmlNode(this->node_name->first_node());
-    }
-
-    const char* attribute(const std::string& name) {
-        return this->node_name->first_attribute(name.c_str())->value();
-    }
-
-    const char* name() {
-        return this->node_name->name();
-    }
-
-    bool nameIs(const std::string& node_name) {
-        if(this->attr_name != NULL) 
-            return (node_name == this->attr_name->name());
-        else if(this->node_name != NULL)
-            return (node_name == this->node_name->name());
+    std::string name(void) {
+        if(_attr == NULL)
+            return "";
         else
-            throw std::runtime_error("XmlNode::nameIs -> no allocated node pointers");
+            return this->_attr->name();
     }
 
-    friend bool operator==(XmlNode& lhs, XmlNode& rhs) {
-        return (lhs.attr_name == rhs.attr_name || 
-                lhs.node_name == rhs.node_name);
+    std::string value(void) {
+        if(_attr == NULL)
+            return "";
+        else
+            return this->_attr->value();
     }
 
-    friend bool operator==(const std::string& str, XmlNode& node) {
-        return (str == node.name());
+    XmlAttribute next(void) {
+        return XmlAttribute(this->_attr->next_attribute());
     }
 
-    friend bool operator==(XmlNode& node, const std::string& str) {
-        return (str == node); // call other overloaded method
-    }
-
-    friend bool operator!=(const std::string& str, XmlNode& node) {
-        return !(str == node);
-    }
-
-    friend bool operator!=(XmlNode& node, const std::string& str) {
-        reutrn !(str == node);
+    bool empty(void) {
+        return (_attr == NULL);
     }
 
 };
 
-// initialization of static class variable
+class XmlNode {
+private:
+    xml_node<>* _node;
+
+public:
+    XmlNode(xml_node<>* _node) : _node(_node) { }
+
+    XmlNode child(const std::string& name) {
+        return XmlNode(this->_node->first_node(name.c_str()));
+    }
+
+    XmlNode child(void) {
+        return XmlNode(this->_node->first_node());
+    }
+
+    XmlNode next(void) {
+        return XmlNode(this->_node->next_sibling());
+    }
+
+    XmlAttribute attr(const std::string& attr_name) {
+        return XmlAttribute(this->_node->first_attribute(attr_name.c_str()));
+    }
+
+    XmlAttribute attr(void) {
+        return XmlAttribute(this->_node->first_attribute());
+    }
+
+    bool empty(void) {
+        return (_node == NULL);
+    }
+
+    std::string name(void) {
+        return this->_node->name();
+    }
+
+};
 
 #endif // __JJC__XML__NODE__H__

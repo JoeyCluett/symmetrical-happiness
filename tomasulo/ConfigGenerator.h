@@ -13,6 +13,12 @@
 #include "ReservationStation.h"
 #include "RegisterFile.h"
 
+// xml parsing lib
+#include <rapidxml.hpp>
+#include <rapidxml_utils.hpp>
+#include <wrapper/XmlWrapper.h>
+#include <wrapper/XmlWrapper.h>
+
 class ConfigGenerator {
 private:
     // register configuration
@@ -26,8 +32,16 @@ private:
     bool has_instructions = false;
     InstructionQueue* iq_ptr = NULL;
 
-    // used to hold modules for simulation
+    // integer register file
+    bool has_int_reg_file = false;
     RegisterFile* reg_file = NULL;
+
+    // floating point register file
+    bool has_float_reg_file = false;
+    RegisterFile* float_reg_file = NULL;
+
+    // when the CPU configuration is instantiated, 
+    // this is allocated
     TomasuloUnit* tu_ptr = NULL;
 
     void parse_xml_config_file(const std::string& filename);
@@ -51,9 +65,22 @@ public:
     void createCpuConfiguration(void);
 
     TomasuloUnit& tu(void) {
+        // will throw segfault is not configured properly
         return *tu_ptr;
     }
 };
+
+void ConfigGenerator::parse_xml_config_file(const std::string& filename) {
+    XmlWrapper wrapper(filename);
+    auto node = wrapper.rootNode();
+
+    if(node != "ConfigStart")
+        throw std::runtime_error("ConfigGenerator::parse_xml_config_file -> expecting first tage: <ConfigStart>");
+
+    // first node if ConfigStart, kidnap the children
+    node = node.child();
+
+}
 
 void ConfigGenerator::createCpuConfiguration(void) {
     if(this->has_instructions == false) {
@@ -67,7 +94,16 @@ void ConfigGenerator::createCpuConfiguration(void) {
             *this->reg_file);
 }
 
-ConfigGenerator::ConfigGenerator(const std::string& filename) {
+ConfigGenerator::ConfigGenerator(const std::string& filename, const int parse_file_type) {
+
+    if(parse_file_type == CONFIG_TYPE_XML) {
+        this->parse_xml_config_file(filename);
+        return;
+    }
+    else if(parse_file_type != CONFIG_TYPE_CUSTOM) {
+        throw std::runtime_error("ConfigGenerator -> invalid config type constant");
+    }
+
     const int STATE_start    = 0;
     const int STATE_default  = 1;
     const int STATE_num_regs = 2;

@@ -29,7 +29,9 @@ void print_operation(operation_t op) {
 class instruction_entry_t {
 public:
     operation_t op = operation_t::_none;
-    int dest = 0, src1 = 0, src2 = 0;
+    int dest = -1, src1 = 0, src2 = 0;
+
+    int program_counter = -1;
 };
 
 class instruction_queue_t {
@@ -70,6 +72,7 @@ public:
         if(current_instruction >= stream.size())
             return false;
         ie = stream[current_instruction];
+        ie.program_counter = current_instruction;
         return true;
     }
 

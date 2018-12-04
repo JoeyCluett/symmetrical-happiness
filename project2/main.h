@@ -7,6 +7,7 @@
 #include <register_file.h>
 #include <reservation_station.h>
 #include <functional_unit.h>
+#include <reorder_buffer.h>
 
 int clocks_for_operation(operation_t op) {
     switch(op) {
@@ -76,60 +77,94 @@ void simulate_cycle(
         register_file_t& rf,
         functional_unit_t* fu) {
 
-    const int state_instruction_issue     = 0;
-    const int state_instruction_dispatch  = 1;
-    const int state_instruction_broadcast = 2;
+    const int state_prep_functional_units      = 0;
+    const int state_instruction_issue          = 1;
+    const int state_instruction_dispatch       = 2;
+    const int state_clean_reservation_stations = 3; // issued rs can dispatch on the next cycle
     int current_state = state_instruction_issue;
 
     bool cycle_finished = false;
     while(!cycle_finished) {
         switch(current_state) {
-            case state_instruction_issue:
+            case state_prep_functional_units:
                 {
-                    // end of cycle, reset has_issue flags so they can be dispatched next cycle
-                    for(int i : {0, 1, 2, 3, 4})
-                        rs[i].flag_has_issue = false;
-
-                    // advance functional units here
                     for(int i : {0, 1})
                         fu[i].advance_clock_pointer();
 
-                    // broadcast any result that is needed and prep functional unit for dispatch
-                    int broadcastable_fu = find_broadcastable_functional_unit(fu);
-                    functional_unit_t& fu_ref = fu[broadcastable_fu];
+                    int active_fu = find_broadcastable_functional_unit(fu);
+                    if(active_fu >= 0) {
+                        std::cout << "Ready functional unit: " << active_fu << std::endl;
+                        functional_unit_t& fu_ref = fu[active_fu];
 
-                    
+                        auto bcast_to_rs = [](reservation_station_t& rs, int rs_tag, int value) {
+                            if(rs.Qk == rs_tag) {
+                                rs.Qk = -1;
+                                rs.Vk = value;
+                                rs.flag_was_broadcast = true;
+                            }
 
-                    instruction_entry_t ie;
-                    auto res = iq.next_instruction(ie);
+                            if(rs.Qj == rs_tag) {
+                                rs.Qj = -1;
+                                rs.Vj = value;
+                                rs.flag_was_broadcast = true;
+                            }
+                        };
 
-                    if(res) {
-                        int free_rs = free_reservation_station(rs, ie.op);
-                        if(free_rs != -1) {
-                            rs[free_rs].insert_instruction(ie, rf, free_rs);
-                            iq.advance_program_counter();
+                        // broadcast this result to all reservation stations waiting for it
+                        for(int i : {0, 1, 2, 3, 4}) {
+                            bcast_to_rs(rs[i], fu_ref.from_reservation_station, fu_ref.get_value());
                         }
-                    } else {
-                        // no available instruction
-                        //std::cout << "NO AVAILABLE INSTRUCTION\n";
-                        ;
+
+                        fu[active_fu].reset();
                     }
-                    current_state = state_instruction_dispatch;
                 }
+                current_state = state_instruction_issue;
+                break;
+            case state_instruction_issue:
+                {
+                    instruction_entry_t ie;
+                    if(iq.next_instruction(ie)) {
+                        switch(ie.op) {
+                            case operation_t::_add:
+                            case operation_t::_subtract:
+                                for(int i : {0, 1, 2}) {
+                                    if(rs[i].can_issue()) {
+                                        rs[i].insert_instruction(ie, rf, i);
+                                        iq.advance_program_counter();
+                                        break;
+                                    }
+                                }
+                                break;
+                            case operation_t::_multiply:
+                            case operation_t::_divide:
+                                for(int i : {3, 4}) {
+                                    if(rs[i].can_issue()) {
+                                        rs[i].insert_instruction(ie, rf, i);
+                                        iq.advance_program_counter();
+                                        break;
+                                    }
+                                }
+                                break;
+                            default:
+                                throw std::runtime_error("trying to issue unknown instruction");
+                        }
+                    }
+                }
+                current_state = state_instruction_dispatch;
                 break;
             case state_instruction_dispatch:
                 {
-                    // dispatch instruction to add/subtract unit if possible
-                    if(fu[0].current_operation == operation_t::_none) {
+                    // search through functional units and find 
+                    // an instruction to dispatch if possible
+                    if(fu[0].current_operation == operation_t::_none) {   
                         for(int i : {0, 1, 2}) {
                             if(rs[i].can_dispatch()) {
-                                // move data into the functional unit
-                                fu[0].current_operation = rs[i].current_operation;
+                                fu[0].clocks_to_finish = clocks_for_operation(rs[i].current_operation);
+                                fu[0].current_clocks = 0;
                                 fu[0].dest_reg = rs[i].dest_register;
                                 fu[0].operand_1 = rs[i].Vj;
                                 fu[0].operand_2 = rs[i].Vk;
-
-                                fu[0].clocks_to_finish = clocks_for_operation(rs[i].current_operation);
+                                fu[0].current_operation = rs[i].current_operation;
 
                                 rs[i].busy = true;
 
@@ -138,16 +173,16 @@ void simulate_cycle(
                         }
                     }
 
-                    // instruction for multiply/divide unit
+                    // search for multiply/divide unit
                     if(fu[1].current_operation == operation_t::_none) {
                         for(int i : {3, 4}) {
                             if(rs[i].can_dispatch()) {
-                                fu[1].current_operation = rs[i].current_operation;
+                                fu[1].clocks_to_finish = clocks_for_operation(rs[i].current_operation);
+                                fu[1].current_clocks = 0;
                                 fu[1].dest_reg = rs[i].dest_register;
                                 fu[1].operand_1 = rs[i].Vj;
                                 fu[1].operand_2 = rs[i].Vk;
-
-                                fu[1].clocks_to_finish = clocks_for_operation(rs[i].current_operation);
+                                fu[1].current_operation = rs[i].current_operation;
 
                                 rs[i].busy = true;
 
@@ -155,17 +190,21 @@ void simulate_cycle(
                             }
                         }
                     }
-
-                    current_state = state_instruction_broadcast;
                 }
+                current_state = state_clean_reservation_stations;
                 break;
-            case state_instruction_broadcast:
-                
-                cycle_finished = true;
+            case state_clean_reservation_stations:
 
+                // prep reservation stations for next cycle
+                for(int i : {0, 1, 2, 3, 4}) {
+                    rs[i].flag_was_issued = false;
+                    rs[i].flag_was_broadcast = false;
+                }
+
+                cycle_finished = true;
                 break;
             default:
-                throw std::runtime_error("in main.h 'simulate_cycle' -> unknown state in FSM");
+                throw std::runtime_error("ERROR");
         }
     }
 }

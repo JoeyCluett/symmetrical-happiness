@@ -16,8 +16,8 @@
 // xml parsing lib
 #include <rapidxml.hpp>
 #include <rapidxml_utils.hpp>
-#include <wrapper/XmlWrapper.h>
-#include <wrapper/XmlWrapper.h>
+#include <wrapper/XmlDocument.h>
+#include <wrapper/XmlNode.h>
 
 class ConfigGenerator {
 private:
@@ -65,17 +65,17 @@ public:
     void createCpuConfiguration(void);
 
     TomasuloUnit& tu(void) {
-        // will throw segfault is not configured properly
+        // will throw segfault if not configured properly
         return *tu_ptr;
     }
 };
 
 void ConfigGenerator::parse_xml_config_file(const std::string& filename) {
-    XmlWrapper wrapper(filename);
-    auto node = wrapper.rootNode();
+    XmlDocument wrapper(filename);
+    auto node = wrapper.root();
 
-    if(node != "ConfigStart")
-        throw std::runtime_error("ConfigGenerator::parse_xml_config_file -> expecting first tage: <ConfigStart>");
+    if(node.name() != "ConfigStart")
+        throw std::runtime_error("ConfigGenerator::parse_xml_config_file -> expecting first tag: <ConfigStart>");
 
     // first node if ConfigStart, kidnap the children
     node = node.child();

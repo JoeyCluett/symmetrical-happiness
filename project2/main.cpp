@@ -25,9 +25,10 @@ int main(int argc, char* argv[]) {
     functional_unit_t fu[2]; // fu[0] +- fu[1] */
     file_parser_t fp(argv[1], iq, RF);
 
-    for(int i = 0; i < 5; i++) {
+    for(;;) {
         simulate_cycle(stations, iq, RF, fu);
         print_all_hardware(stations, RF, fu, iq);
+        getchar();
     }
 
     return 0;
@@ -48,7 +49,7 @@ void print_all_hardware(
 auto int_to_string_padded(int i, int len) -> std::string {
     auto str = to_string(i);
     while(str.size() < len)
-        str += " ";
+        str.push_back(' ');
     return str;
 }
 
@@ -92,9 +93,8 @@ void print_reservation_stations(reservation_station_t* rs) {
         if(rs[i].Qk == -1) {
             cout << "  ### |";
         } else {
-            cout << " RS" << int_to_string_padded(rs[i].Qj, 3) << '|';
+            cout << " RS" << int_to_string_padded(rs[i].Qk, 3) << '|';
         }
-
 
         cout << endl;
     }

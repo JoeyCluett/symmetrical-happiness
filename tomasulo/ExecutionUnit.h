@@ -37,6 +37,7 @@ class ExecutionUnit {
 public:
     int busy = false;
     int readyToBroadcast = false;
+    int hasException     = false;
     
     int operation;
     int cycles_to_complete = -1;
@@ -46,6 +47,7 @@ public:
 
     int source_rs = -1;
     int dest_reg = -1;
+    int dest_rob = -1;
     MultiType input_1;
     MultiType input_2;
 
@@ -56,6 +58,8 @@ public:
         current_cycles = 0;
         source_rs = -1;
         dest_reg = -1;
+        dest_rob = -1;
+        hasException = false;
     }
 
     int getResult(void) {
@@ -67,7 +71,21 @@ public:
             case MUL:
                 return input_1.i * input_2.i; break;
             case DIV:
-                return input_1.i / input_2.i; break;
+                if(input_2.i == 0) {
+                    hasException = true;
+                    return input_1.i;
+                } else {
+                    return input_1.i / input_2.i;
+                }
+                break;
+            case ADDF:
+                return input_1.f + input_2.f; break;
+            case SUBF:
+                return input_1.f - input_2.f; break;
+            case MULF:
+                return input_1.f * input_2.f; break;
+            case DIVF:
+                return input_1.f / input_2.f; break;
             default:
                 throw std::runtime_error("ExecutionUnit::getResult() -> unknown operation");
         }

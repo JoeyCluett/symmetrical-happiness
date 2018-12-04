@@ -31,6 +31,8 @@ private:
             }
 
             print(node.child(), indent + "  ", os);
+            //if(node.child().empty())
+            //    os << std::endl;
             print(node.next(), indent, os);
 
         } else {

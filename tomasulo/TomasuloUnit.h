@@ -38,6 +38,7 @@ For more information, please refer to <http://unlicense.org/>
 #include "InstructionQueue.h"
 #include "Constants.h"
 #include "RegisterFile.h"
+#include "ReorderBuffer.h"
 
 // XML parser
 #include <rapidxml.hpp> // the compiler will help us out here
@@ -52,10 +53,18 @@ For more information, please refer to <http://unlicense.org/>
 class TomasuloUnit {
 private:
     std::vector<ReservationStationGroup*> res_stations;
-    InstructionQueue* iq;
-    RegisterFile* rf;
+    InstructionQueue* iq   = NULL;
+    RegisterFile* rf       = NULL;
+    RegisterFile* rf_fp    = NULL;
+    ReorderBuffer* reorder = NULL;
 
     int simulation_cycles = 0;
+
+    // flags for various bits of info
+    bool has_fp_regs     = false;
+    bool has_int_regs    = false;
+    bool has_reorder_buf = false;
+    bool has_iq_entry    = false;
 
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
     TextBlock* tb = NULL;
@@ -84,6 +93,20 @@ public:
 #if defined(OS_LINUX) && defined(USE_UNIQUE_PRINTING)
         //delete tb;
 #endif
+    }
+
+    void addFpRegisterSet(RegisterFile& rf) {
+        this->rf_fp = &rf;
+        this->has_fp_regs = true;
+    }
+
+    void addIntRegisterSet(RegisterFile& rf) {
+        this->rf = &rf;
+        this->has_int_regs = true;
+    }
+
+    void addInstructionQueue(InstructionQueue& iq) {
+
     }
 
     friend std::ostream& operator<<(std::ostream& os, TomasuloUnit& tu) {

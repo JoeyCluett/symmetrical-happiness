@@ -10,6 +10,7 @@ public:
 
     int operand_1 = 0, operand_2 = 0;
     int dest_reg = -1;
+    int program_counter = -1; // PC of current instruction
 
     // different for each functional unit
     int current_clocks = 0;
@@ -19,6 +20,17 @@ public:
     int from_reservation_station = -1;
 
     bool flag_has_exception = false;
+
+    // full reset
+    void reset(void) {
+        this->operand_1 = 0;
+        this->operand_2 = 0;
+        this->current_clocks = 0;
+        this->clocks_to_finish = 0;
+        this->from_reservation_station = -1;
+        this->flag_has_exception = false;
+        this->program_counter = -1;
+    }
 
     int get_value(void) {
         switch(this->current_operation) {

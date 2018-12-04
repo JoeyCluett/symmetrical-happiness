@@ -9,21 +9,20 @@ class reservation_station_t {
 public:
     reservation_station_t(void) { ; }
 
-    operation_t current_operation = operation_t::_none; // none = not busy
-    bool busy = false;
+    operation_t current_operation = operation_t::_none; // none = not occupied
+    bool busy = false; // currently executing?
 
     int 
-        Vj = 0, 
-        Vk = 0, 
-        Qj = -1, 
-        Qk = -1; // -1 : NONE
+        Vj = 0,  // value of this operand
+        Vk = 0,  // --
+        Qj = -1, // reservation station with this operand
+        Qk = -1; // --
 
     int dest_register = -1;
+    int instruction_pc = -1;
 
-    // flags used by simulator to track simulation events
-    bool flag_has_dispatch = false;
-    bool flag_has_issue = false;
-    bool flag_was_broadcast_to = false;
+    bool flag_was_issued = false;
+    bool flag_was_broadcast = false;
 
     void reset(void) {
         this->Vj = 0;
@@ -33,22 +32,33 @@ public:
         this->dest_register = -1;
         this->busy = false;
         this->current_operation = operation_t::_none;
+        this->instruction_pc = -1;
     }
 
     bool can_dispatch(void) {
-        if(this->current_operation != operation_t::_none) {
-            // MIGHT be able to dispatch
-            if(this->flag_has_issue || this->busy)
-                return false; // cant issue and dispatch in same cycle or if already doing something
-            else {
-                if(this->Qj == -1 && this->Qk == -1)
-                    return true;
-                else
-                    return false;
-            }
+        if(
+                this->current_operation != operation_t::_none && 
+                this->busy == false && 
+                this->flag_was_issued == false &&
+                this->flag_was_broadcast == false) {
+            return (this->Qj == -1 && this->Qk == -1);
         } else {
             return false;
         }
+    }
+
+    bool can_issue(void) {
+        return (this->current_operation == operation_t::_none);
+    }
+
+    bool can_broadcast(int rs_index) {
+        if(
+                this->flag_was_issued == false && 
+                this->busy == false && 
+                this->current_operation != operation_t::_none) {
+            return true;
+        }
+        return false;
     }
 
     void dispatch_to(functional_unit_t& fu) {
@@ -61,13 +71,6 @@ public:
 
     // it has already been determined if this station is free
     void insert_instruction(instruction_entry_t& ie, register_file_t& rf, int rs_index) {
-        this->flag_has_issue = true;
-        //this->busy = true;
-
-        // change RF tag to this station
-        rf.tag(ie.dest) = rs_index;
-        this->dest_register = ie.dest;
-        this->current_operation = ie.op;
 
         // find data for source j
         {
@@ -88,6 +91,8 @@ public:
             int tag = rf.tag(ie.src2);
             int value = rf.value(ie.src2);
 
+            std::cout << "K tag: " << tag << std::endl;
+
             if(tag == -1) {
                 this->Vk = value;
                 this->Qk = -1;
@@ -96,6 +101,11 @@ public:
             }
         }
 
-
+        // change RF tag to this station
+        rf.tag(ie.dest) = rs_index;
+        this->flag_was_issued = true;
+        this->dest_register = ie.dest;
+        this->current_operation = ie.op;
+        this->instruction_pc = ie.program_counter;
     }
 };

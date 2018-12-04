@@ -4,7 +4,7 @@
 
     Every instance must have:
         ASIDE.) Since the inclusion of the ConfigGenerator class, 
-            you can simply make a separatecpu config file and let it 
+            you can simply make a separate cpu config file and let it 
             generate all of the simulation components needed. 
             otherwise follow the steps below:
 

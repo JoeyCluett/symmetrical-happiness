@@ -71,10 +71,21 @@ typedef RegisterEntry reg_entry_t;
 
 class RegisterFile {
 private:
-    reg_entry_t* regs;
+    reg_entry_t* regs = NULL;
     int num_entries;
 
+    reg_entry_t* regs_f = NULL;
+    int num_entries_f;
+
     std::string int_with_length(int val, int width) {
+        std::string v = std::to_string(val);
+        while(v.size() < width) {
+            v.push_back(' ');
+        }
+        return v;
+    }
+
+    std::string float_with_length(float val, int width) {
         std::string v = std::to_string(val);
         while(v.size() < width) {
             v.push_back(' ');
@@ -88,6 +99,12 @@ private:
             + std::to_string(index));
     }
 
+    void verifyRegisterIndex_f(int index) {
+        if(index >= num_entries || index < 0)
+            throw std::runtime_error("RegisterFile::verifyRegisterIndex_f() -> invalid register index: "
+            + std::to_string(index));
+    }
+
 public:
     RegisterFile(int entries) {
         regs = new reg_entry_t[entries];
@@ -98,10 +115,22 @@ public:
         return this->num_entries;
     }
 
+    int rfSize_f(void) {
+        return this->num_entries_f;
+    }
+
     bool allocated(int register_entry) {
         verifyRegisterIndex(register_entry);
 
         if(regs[register_entry].rat == NOT_USED)
+            return false;
+        return true;
+    }
+
+    bool allocated_f(int register_entry) {
+        verifyRegisterIndex_f(register_entry);
+
+        if(regs_f[register_entry].rat == NOT_USED)
             return false;
         return true;
     }
@@ -113,12 +142,23 @@ public:
         return regs + index;
     }
 
+    RegisterEntry* getRegister_f(int index) {
+        verifyRegisterIndex_f(index);
+        return regs_f + index;
+    }
+
     // checks entry against number of registers
     bool set_reg(int entry, int rf, int rat) {
         verifyRegisterIndex(entry);
-
-        regs[entry].rf.i  = rf;
+        regs[entry].rf.i = rf;
         regs[entry].rat = rat;
+        return true;
+    }
+
+    bool set_reg_f(int entry, float rf, int rat) {
+        verifyRegisterIndex_f(entry);
+        regs_f[entry].rf.f = rf;
+        regs_f[entry].rat = rat;
         return true;
     }
 

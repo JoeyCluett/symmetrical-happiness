@@ -27,12 +27,19 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 */
 
-// integer add instructions
+// integer instructions
 #define ADD (0)
 #define SUB (1)
 #define MUL (2)
 #define DIV (3)
-#define NONE (4)
+
+// floating point instructions
+#define ADDF (4)
+#define SUBF (5)
+#define MULF (6)
+#define DIVF (7)
+
+#define NONE (8)
 
 // configuration file data
 const int CONFIG_TYPE_CUSTOM = 0;
@@ -53,11 +60,15 @@ const std::vector<const char*> operation_lut = {
     "SUB        ",
     "MUL        ",
     "DIV        ",
+    "ADDF       ",
+    "SUBF       ",
+    "MULF       ",
+    "DIVF       ",
     "UNASSIGNED "
 };
 
 const std::vector<const char*> op_symbol_lut = {
-    "+", "-", "*", "/", "UNKNOWN"
+    "+i", "-i", "*i", "/i", "+f", "-f", "*f", "/f", "UNKNOWN"
 };
 
 // HERE BE DRAGONS, YOUVE BEEN WARNED
